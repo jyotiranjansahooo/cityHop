@@ -1,12 +1,9 @@
-import mongoose, { Schema, model } from "mongoose";
-import type { Document } from "mongoose";
+import mongoose, { Schema, type Model } from "mongoose";
 
-export interface ICity extends Document {
+export interface ICity {
   name: string;
-  state: "Odisha";
-  slug: string;
-  latitude: number;
-  longitude: number;
+  state: string;
+  country: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -19,31 +16,22 @@ const citySchema = new Schema<ICity>(
       required: true,
       trim: true,
       unique: true,
+      minlength: 2,
+      maxlength: 100,
     },
 
     state: {
       type: String,
       required: true,
       default: "Odisha",
-      enum: ["Odisha"],
-    },
-
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
       trim: true,
     },
 
-    latitude: {
-      type: Number,
+    country: {
+      type: String,
       required: true,
-    },
-
-    longitude: {
-      type: Number,
-      required: true,
+      default: "India",
+      trim: true,
     },
 
     isActive: {
@@ -53,10 +41,11 @@ const citySchema = new Schema<ICity>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-const City =
-  mongoose.models.City || model<ICity>("City", citySchema);
+const City: Model<ICity> =
+  mongoose.models.City ||
+  mongoose.model<ICity>("City", citySchema);
 
 export default City;
