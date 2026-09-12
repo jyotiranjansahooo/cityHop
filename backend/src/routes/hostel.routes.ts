@@ -1,22 +1,49 @@
 import { Router } from "express";
 
-import { createHostel } from "../controllers/hostel.controller.js";
+import {
+createHostel,
+deleteHostel,
+getHostelById,
+getHostels,
+updateHostel,
+uploadHostelImages,
+} from "../controllers/hostel.controller.js";
+import upload from "../middleware/upload.middleware.js";
+
 import { protect } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
-import hostelRouter from "./hostel.routes.js";
-import authRouter from "./auth.routes.js";
-
-
 
 const router = Router();
 
+router.get("/", getHostels);
+
+router.get("/:id", getHostelById);
+
+router.post("/", protect, authorize("owner", "admin"), createHostel);
+
+router.patch("/:id", protect, authorize("owner", "admin"), updateHostel);
+
+router.delete("/:id", protect, authorize("owner", "admin"), deleteHostel);
 router.post(
-  "/",
+  "/upload-images",
   protect,
   authorize("owner", "admin"),
-  createHostel,
+  upload.array("images", 10),
+  uploadHostelImages,
 );
-router.use("/auth", authRouter);
-router.use("/hostels", hostelRouter);
+router.post(
+  "/:id/images",
+  protect,
+  authorize("owner", "admin"),
+  upload.array("images", 10),
+  uploadHostelImages,
+);
+
+router.delete(
+  "/:id/images/:publicId",
+  protect,
+  authorize("owner", "admin"),
+  uploadHostelImages,
+);
 
 export default router;

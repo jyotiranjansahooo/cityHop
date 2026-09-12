@@ -1,14 +1,15 @@
-import mongoose, {
-  Schema,
-  Types,
-  type Model,
-} from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
+export type HostelType = "boys" | "girls" | "co-living";
 
-export type HostelType = "boys" | "girls" | "unisex";
+
+export interface IHostelImage {
+_id?: Types.ObjectId;
+url: string;
+publicId: string;
+}
 
 export interface IHostel {
   name: string;
-
   owner: Types.ObjectId;
   city: Types.ObjectId;
   area: Types.ObjectId;
@@ -24,16 +25,33 @@ export interface IHostel {
   securityDeposit?: number;
 
   amenities: string[];
-  images: string[];
+
+  images: IHostelImage[];
 
   description?: string;
 
-  isAvailable: boolean;
   isActive: boolean;
 
   createdAt: Date;
   updatedAt: Date;
 }
+
+const hostelImageSchema = new Schema<IHostelImage>(
+  {
+    url: {
+      type: String,
+      required: true,
+    },
+
+    publicId: {
+      type: String,
+      required: true,
+    },
+  },
+  {
+    _id: false,
+  },
+);
 
 const hostelSchema = new Schema<IHostel>(
   {
@@ -41,8 +59,6 @@ const hostelSchema = new Schema<IHostel>(
       type: String,
       required: true,
       trim: true,
-      minlength: 2,
-      maxlength: 150,
     },
 
     owner: {
@@ -65,7 +81,7 @@ const hostelSchema = new Schema<IHostel>(
 
     type: {
       type: String,
-      enum: ["boys", "girls", "unisex"],
+      enum: ["boys", "girls", "co-living"],
       required: true,
     },
 
@@ -73,32 +89,25 @@ const hostelSchema = new Schema<IHostel>(
       type: String,
       required: true,
       trim: true,
-      maxlength: 300,
     },
 
     latitude: {
       type: Number,
       required: true,
-      min: -90,
-      max: 90,
     },
 
     longitude: {
       type: Number,
       required: true,
-      min: -180,
-      max: 180,
     },
 
     monthlyRent: {
       type: Number,
       required: true,
-      min: 0,
     },
 
     securityDeposit: {
       type: Number,
-      min: 0,
     },
 
     amenities: {
@@ -107,19 +116,13 @@ const hostelSchema = new Schema<IHostel>(
     },
 
     images: {
-      type: [String],
+      type: [hostelImageSchema],
       default: [],
     },
 
     description: {
       type: String,
       trim: true,
-      maxlength: 2000,
-    },
-
-    isAvailable: {
-      type: Boolean,
-      default: true,
     },
 
     isActive: {
@@ -132,14 +135,9 @@ const hostelSchema = new Schema<IHostel>(
   },
 );
 
-hostelSchema.index({
-  city: 1,
-  area: 1,
-  monthlyRent: 1,
-});
-
 const Hostel: Model<IHostel> =
-  mongoose.models.Hostel ||
-  mongoose.model<IHostel>("Hostel", hostelSchema);
+  models.Hostel instanceof Function
+    ? (models.Hostel as Model<IHostel>)
+    : model<IHostel>("Hostel", hostelSchema);
 
 export default Hostel;

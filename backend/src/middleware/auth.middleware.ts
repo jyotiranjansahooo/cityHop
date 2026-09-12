@@ -52,7 +52,7 @@ export const protect = async (
 
     const user = await User.findById(decoded.userId).select(
       "_id role isActive",
-    ); 
+    );
 
     if (!user) {
       res.status(401).json({
@@ -92,4 +92,26 @@ export const protect = async (
       message: "Authentication failed",
     });
   }
+};
+
+export const authorize = (...roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    if (!roles.includes(req.user.role)) {
+      res.status(403).json({
+        success: false,
+        message: "You do not have permission to access this resource",
+      });
+      return;
+    }
+
+    next();
+  };
 };
