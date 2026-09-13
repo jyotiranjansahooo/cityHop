@@ -71,10 +71,7 @@ export const registerUser = async (
   }
 };
 
-export const loginUser = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
@@ -100,10 +97,7 @@ export const loginUser = async (
       return;
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       res.status(401).json({
@@ -168,9 +162,7 @@ export const getCurrentUser = async (
       return;
     }
 
-    const user = await User.findById(req.user.id).select(
-      "-password",
-    );
+    const user = await User.findById(req.user.id).select("-password");
 
     if (!user) {
       res.status(404).json({
@@ -193,6 +185,237 @@ export const getCurrentUser = async (
     });
   } catch (error) {
     logger.error({ error }, "Failed to get current user");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+export const getOwnerProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to get owner profile");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+export const updateOwnerProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const { name, email } = req.body;
+
+    if (
+      name !== undefined &&
+      (typeof name !== "string" || name.trim().length === 0)
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Name must be a valid non-empty string",
+      });
+      return;
+    }
+
+    if (
+      email !== undefined &&
+      (typeof email !== "string" || email.trim().length === 0)
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Email must be a valid non-empty string",
+      });
+      return;
+    }
+
+    if (name === undefined && email === undefined) {
+      res.status(400).json({
+        success: false,
+        message: "At least one field is required",
+      });
+      return;
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    if (typeof name === "string") {
+      user.name = name.trim();
+    }
+
+    if (typeof email === "string") {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      if (normalizedEmail !== user.email) {
+        const existingUser = await User.findOne({
+          email: normalizedEmail,
+          _id: {
+            $ne: user._id,
+          },
+        });
+
+        if (existingUser) {
+          res.status(409).json({
+            success: false,
+            message: "Email is already in use",
+          });
+          return;
+        }
+
+        user.email = normalizedEmail;
+      }
+    }
+
+    await user.save();
+
+    logger.info(
+      {
+        userId: user._id.toString(),
+      },
+      "Owner profile updated",
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to update owner profile");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+export const changeOwnerPassword = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (
+      typeof currentPassword !== "string" ||
+      currentPassword.length === 0 ||
+      typeof newPassword !== "string" ||
+      newPassword.length === 0
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Current password and new password are required",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({
+        success: false,
+        message: "New password must be at least 6 characters",
+      });
+      return;
+    }
+
+    const user = await User.findById(req.user.id).select("+password");
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordCorrect) {
+      res.status(400).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+      return;
+    }
+
+    user.password = newPassword;
+
+    await user.save();
+
+    logger.info(
+      {
+        userId: user._id.toString(),
+      },
+      "Owner password changed",
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to change owner password");
 
     res.status(500).json({
       success: false,
