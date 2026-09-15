@@ -1,7 +1,10 @@
 import type { Response } from "express";
+import { Types } from "mongoose";
 
 import type { AuthRequest } from "../middleware/auth.middleware.js";
 import Booking from "../models/Booking.js";
+import Hostel from "../models/Hostel.js";
+import User from "../models/User.js";
 import logger from "../utils/logger.js";
 
 export const getOwnerBookings = async (
@@ -40,6 +43,7 @@ export const getOwnerBookings = async (
     });
   }
 };
+
 export const approveBooking = async (
   req: AuthRequest,
   res: Response,
@@ -55,10 +59,36 @@ export const approveBooking = async (
 
     const { id } = req.params;
 
-    if (typeof id !== "string") {
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
       res.status(400).json({
         success: false,
         message: "Invalid booking ID",
+      });
+      return;
+    }
+
+    if (!Types.ObjectId.isValid(req.user.id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid owner ID",
+      });
+      return;
+    }
+
+    const owner = await User.findById(req.user.id).select("_id role isActive");
+
+    if (!owner || owner.role !== "owner") {
+      res.status(403).json({
+        success: false,
+        message: "Only owners can approve bookings",
+      });
+      return;
+    }
+
+    if (!owner.isActive) {
+      res.status(403).json({
+        success: false,
+        message: "Your owner account is inactive",
       });
       return;
     }
@@ -84,9 +114,63 @@ export const approveBooking = async (
       return;
     }
 
+    const hostel = await Hostel.findById(booking.hostel).select(
+      "_id owner isActive",
+    );
+
+    if (!hostel) {
+      res.status(404).json({
+        success: false,
+        message: "Hostel not found",
+      });
+      return;
+    }
+
+    if (hostel.owner.toString() !== owner._id.toString()) {
+      res.status(403).json({
+        success: false,
+        message: "This hostel does not belong to your owner account",
+      });
+      return;
+    }
+
+    if (!hostel.isActive) {
+      res.status(403).json({
+        success: false,
+        message: "This hostel is inactive",
+      });
+      return;
+    }
+
+    const conflictingBooking = await Booking.findOne({
+      _id: {
+        $ne: booking._id,
+      },
+      hostel: booking.hostel,
+      status: "approved",
+      checkInDate: {
+        $lt: booking.checkOutDate,
+      },
+      checkOutDate: {
+        $gt: booking.checkInDate,
+      },
+    });
+
+    if (conflictingBooking) {
+      res.status(409).json({
+        success: false,
+        message: "This booking conflicts with an existing approved booking",
+      });
+      return;
+    }
+
     booking.status = "approved";
 
     await booking.save();
+
+    const updatedBooking = await Booking.findById(booking._id)
+      .populate("user", "name email")
+      .populate("hostel", "name images city area monthlyRent");
 
     logger.info(
       {
@@ -99,7 +183,7 @@ export const approveBooking = async (
     res.status(200).json({
       success: true,
       message: "Booking approved successfully",
-      booking,
+      booking: updatedBooking,
     });
   } catch (error) {
     logger.error({ error }, "Failed to approve booking");
@@ -127,7 +211,7 @@ export const rejectBooking = async (
     const { id } = req.params;
     const { rejectionReason } = req.body;
 
-    if (typeof id !== "string") {
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
       res.status(400).json({
         success: false,
         message: "Invalid booking ID",
@@ -205,7 +289,7 @@ export const getOwnerBookingById = async (
 
     const { id } = req.params;
 
-    if (typeof id !== "string") {
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
       res.status(400).json({
         success: false,
         message: "Invalid booking ID",

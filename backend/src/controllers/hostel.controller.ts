@@ -1,10 +1,17 @@
 import type { Request, Response } from "express";
 import { Types } from "mongoose";
 import { Readable } from "stream";
-import type { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
+import type {
+  UploadApiErrorResponse,
+  UploadApiResponse,
+} from "cloudinary";
 
+import User from "../models/User.js";
 import type { AuthRequest } from "../middleware/auth.middleware.js";
-import Hostel, { type IHostel, type HostelType } from "../models/Hostel.js";
+import Hostel, {
+  type IHostel,
+  type HostelType,
+} from "../models/Hostel.js";
 import City from "../models/City.js";
 import Area from "../models/Area.js";
 import cloudinary from "../config/cloudinary.js";
@@ -58,13 +65,21 @@ type HostelFilter = {
   };
 };
 
-const hostelTypes: readonly HostelType[] = ["boys", "girls", "co-living"];
+const hostelTypes: readonly HostelType[] = [
+  "boys",
+  "girls",
+  "co-living",
+];
 
-const isValidHostelType = (value: string): value is HostelType => {
+const isValidHostelType = (
+  value: string,
+): value is HostelType => {
   return hostelTypes.includes(value as HostelType);
 };
 
-const isUploadedImage = (value: unknown): value is UploadedImage => {
+const isUploadedImage = (
+  value: unknown,
+): value is UploadedImage => {
   if (typeof value !== "object" || value === null) {
     return false;
   }
@@ -74,7 +89,10 @@ const isUploadedImage = (value: unknown): value is UploadedImage => {
     publicId?: unknown;
   };
 
-  return typeof image.url === "string" && typeof image.publicId === "string";
+  return (
+    typeof image.url === "string" &&
+    typeof image.publicId === "string"
+  );
 };
 
 const uploadImageToCloudinary = (
@@ -96,7 +114,11 @@ const uploadImageToCloudinary = (
         }
 
         if (!result) {
-          reject(new Error("Cloudinary did not return an upload result"));
+          reject(
+            new Error(
+              "Cloudinary did not return an upload result",
+            ),
+          );
           return;
         }
 
@@ -137,7 +159,9 @@ export const uploadHostelImages = async (
       return;
     }
 
-    const images = await Promise.all(req.files.map(uploadImageToCloudinary));
+    const images = await Promise.all(
+      req.files.map(uploadImageToCloudinary),
+    );
 
     logger.info(
       {
@@ -153,7 +177,10 @@ export const uploadHostelImages = async (
       images,
     });
   } catch (error) {
-    logger.error({ error }, "Failed to upload hostel images");
+    logger.error(
+      { error },
+      "Failed to upload hostel images",
+    );
 
     res.status(500).json({
       success: false,
@@ -171,6 +198,34 @@ export const createHostel = async (
       res.status(401).json({
         success: false,
         message: "Unauthorized",
+      });
+      return;
+    }
+
+    if (!Types.ObjectId.isValid(req.user.id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid user ID",
+      });
+      return;
+    }
+
+    const owner = await User.findById(req.user.id).select(
+      "_id role isActive",
+    );
+
+    if (!owner || owner.role !== "owner") {
+      res.status(403).json({
+        success: false,
+        message: "Only owners can create hostels",
+      });
+      return;
+    }
+
+    if (!owner.isActive) {
+      res.status(403).json({
+        success: false,
+        message: "Your owner account is inactive",
       });
       return;
     }
@@ -209,7 +264,10 @@ export const createHostel = async (
       return;
     }
 
-    if (name.trim().length === 0 || address.trim().length === 0) {
+    if (
+      name.trim().length === 0 ||
+      address.trim().length === 0
+    ) {
       res.status(400).json({
         success: false,
         message: "Hostel name and address are required",
@@ -241,40 +299,36 @@ export const createHostel = async (
       return;
     }
 
-    if (!Types.ObjectId.isValid(req.user.id)) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
-      return;
-    }
-
     const latitudeNumber = Number(latitude);
-
     const longitudeNumber = Number(longitude);
-
     const monthlyRentNumber = Number(monthlyRent);
 
-    if (!Number.isFinite(latitudeNumber) || !Number.isFinite(longitudeNumber)) {
+    if (
+      !Number.isFinite(latitudeNumber) ||
+      !Number.isFinite(longitudeNumber)
+    ) {
       res.status(400).json({
         success: false,
-        message: "Latitude and longitude must be valid numbers",
+        message:
+          "Latitude and longitude must be valid numbers",
       });
       return;
     }
 
-    if (!Number.isFinite(monthlyRentNumber) || monthlyRentNumber < 0) {
+    if (
+      !Number.isFinite(monthlyRentNumber) ||
+      monthlyRentNumber < 0
+    ) {
       res.status(400).json({
         success: false,
-        message: "Monthly rent must be a valid positive number",
+        message:
+          "Monthly rent must be a valid positive number",
       });
       return;
     }
 
     const cityId = new Types.ObjectId(city);
-
     const areaId = new Types.ObjectId(area);
-
     const ownerId = new Types.ObjectId(req.user.id);
 
     const cityExists = await City.findById(cityId);
@@ -301,15 +355,20 @@ export const createHostel = async (
       return;
     }
 
-    const hostelImages: UploadedImage[] = Array.isArray(images)
-      ? images.filter(isUploadedImage)
-      : [];
+    const hostelImages: UploadedImage[] =
+      Array.isArray(images)
+        ? images.filter(isUploadedImage)
+        : [];
 
-    const hostelAmenities: string[] = Array.isArray(amenities)
-      ? amenities.filter(
-          (amenity): amenity is string => typeof amenity === "string",
-        )
-      : [];
+    const hostelAmenities: string[] =
+      Array.isArray(amenities)
+        ? amenities.filter(
+            (
+              amenity,
+            ): amenity is string =>
+              typeof amenity === "string",
+          )
+        : [];
 
     const hostelData: HostelCreateData = {
       name: name.trim(),
@@ -332,7 +391,10 @@ export const createHostel = async (
     ) {
       const depositNumber = Number(securityDeposit);
 
-      if (!Number.isFinite(depositNumber) || depositNumber < 0) {
+      if (
+        !Number.isFinite(depositNumber) ||
+        depositNumber < 0
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid security deposit",
@@ -343,7 +405,10 @@ export const createHostel = async (
       hostelData.securityDeposit = depositNumber;
     }
 
-    if (typeof description === "string" && description.trim().length > 0) {
+    if (
+      typeof description === "string" &&
+      description.trim().length > 0
+    ) {
       hostelData.description = description.trim();
     }
 
@@ -363,7 +428,10 @@ export const createHostel = async (
       hostel,
     });
   } catch (error) {
-    logger.error({ error }, "Failed to create hostel");
+    logger.error(
+      { error },
+      "Failed to create hostel",
+    );
 
     res.status(500).json({
       success: false,
@@ -435,7 +503,10 @@ export const getHostels = async (
     if (typeof minRent === "string") {
       const minRentNumber = Number(minRent);
 
-      if (!Number.isFinite(minRentNumber) || minRentNumber < 0) {
+      if (
+        !Number.isFinite(minRentNumber) ||
+        minRentNumber < 0
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid minimum rent",
@@ -449,7 +520,10 @@ export const getHostels = async (
     if (typeof maxRent === "string") {
       const maxRentNumber = Number(maxRent);
 
-      if (!Number.isFinite(maxRentNumber) || maxRentNumber < 0) {
+      if (
+        !Number.isFinite(maxRentNumber) ||
+        maxRentNumber < 0
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid maximum rent",
@@ -467,20 +541,29 @@ export const getHostels = async (
     ) {
       res.status(400).json({
         success: false,
-        message: "Minimum rent cannot be greater than maximum rent",
+        message:
+          "Minimum rent cannot be greater than maximum rent",
       });
       return;
     }
 
-    if (rentFilter.$gte !== undefined || rentFilter.$lte !== undefined) {
+    if (
+      rentFilter.$gte !== undefined ||
+      rentFilter.$lte !== undefined
+    ) {
       filter.monthlyRent = rentFilter;
     }
 
-    const pageNumber = typeof page === "string" ? Number(page) : 1;
+    const pageNumber =
+      typeof page === "string" ? Number(page) : 1;
 
-    const limitNumber = typeof limit === "string" ? Number(limit) : 10;
+    const limitNumber =
+      typeof limit === "string" ? Number(limit) : 10;
 
-    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+    if (
+      !Number.isInteger(pageNumber) ||
+      pageNumber < 1
+    ) {
       res.status(400).json({
         success: false,
         message: "Page must be a positive integer",
@@ -488,7 +571,11 @@ export const getHostels = async (
       return;
     }
 
-    if (!Number.isInteger(limitNumber) || limitNumber < 1 || limitNumber > 50) {
+    if (
+      !Number.isInteger(limitNumber) ||
+      limitNumber < 1 ||
+      limitNumber > 50
+    ) {
       res.status(400).json({
         success: false,
         message: "Limit must be between 1 and 50",
@@ -512,11 +599,12 @@ export const getHostels = async (
       Hostel.countDocuments(filter),
     ]);
 
-    const totalPages = Math.ceil(total / limitNumber);
+    const totalPages = Math.ceil(
+      total / limitNumber,
+    );
 
     res.status(200).json({
       success: true,
-
       pagination: {
         total,
         page: pageNumber,
@@ -525,12 +613,14 @@ export const getHostels = async (
         hasNextPage: pageNumber < totalPages,
         hasPreviousPage: pageNumber > 1,
       },
-
       count: hostels.length,
       hostels,
     });
   } catch (error) {
-    logger.error({ error }, "Failed to get hostels");
+    logger.error(
+      { error },
+      "Failed to get hostels",
+    );
 
     res.status(500).json({
       success: false,
@@ -546,7 +636,10 @@ export const getHostelById = async (
   try {
     const { id } = req.params;
 
-    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
+    if (
+      typeof id !== "string" ||
+      !Types.ObjectId.isValid(id)
+    ) {
       res.status(400).json({
         success: false,
         message: "Invalid hostel ID",
@@ -559,7 +652,10 @@ export const getHostelById = async (
       isActive: true,
     })
       .populate("city", "name state country")
-      .populate("area", "name description latitude longitude")
+      .populate(
+        "area",
+        "name description latitude longitude",
+      )
       .populate("owner", "name email");
 
     if (!hostel) {
@@ -575,7 +671,10 @@ export const getHostelById = async (
       hostel,
     });
   } catch (error) {
-    logger.error({ error }, "Failed to get hostel details");
+    logger.error(
+      { error },
+      "Failed to get hostel details",
+    );
 
     res.status(500).json({
       success: false,
@@ -599,7 +698,10 @@ export const updateHostel = async (
 
     const { id } = req.params;
 
-    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
+    if (
+      typeof id !== "string" ||
+      !Types.ObjectId.isValid(id)
+    ) {
       res.status(400).json({
         success: false,
         message: "Invalid hostel ID",
@@ -617,16 +719,48 @@ export const updateHostel = async (
       return;
     }
 
-    const isOwner = hostel.owner.toString() === req.user.id;
+    const isOwner =
+      hostel.owner.toString() === req.user.id;
 
     const isAdmin = req.user.role === "admin";
 
     if (!isOwner && !isAdmin) {
       res.status(403).json({
         success: false,
-        message: "You do not have permission to update this hostel",
+        message:
+          "You do not have permission to update this hostel",
       });
       return;
+    }
+
+    if (isOwner) {
+      if (!Types.ObjectId.isValid(req.user.id)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid user ID",
+        });
+        return;
+      }
+
+      const owner = await User.findById(req.user.id).select(
+        "_id role isActive",
+      );
+
+      if (!owner || owner.role !== "owner") {
+        res.status(403).json({
+          success: false,
+          message: "Only owners can update hostels",
+        });
+        return;
+      }
+
+      if (!owner.isActive) {
+        res.status(403).json({
+          success: false,
+          message: "Your owner account is inactive",
+        });
+        return;
+      }
     }
 
     const body = req.body as HostelBody;
@@ -645,7 +779,10 @@ export const updateHostel = async (
     } = body;
 
     if (name !== undefined) {
-      if (typeof name !== "string" || name.trim().length === 0) {
+      if (
+        typeof name !== "string" ||
+        name.trim().length === 0
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid hostel name",
@@ -657,7 +794,10 @@ export const updateHostel = async (
     }
 
     if (type !== undefined) {
-      if (typeof type !== "string" || !isValidHostelType(type)) {
+      if (
+        typeof type !== "string" ||
+        !isValidHostelType(type)
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid hostel type",
@@ -669,7 +809,10 @@ export const updateHostel = async (
     }
 
     if (address !== undefined) {
-      if (typeof address !== "string" || address.trim().length === 0) {
+      if (
+        typeof address !== "string" ||
+        address.trim().length === 0
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid hostel address",
@@ -711,7 +854,10 @@ export const updateHostel = async (
     if (monthlyRent !== undefined) {
       const rentNumber = Number(monthlyRent);
 
-      if (!Number.isFinite(rentNumber) || rentNumber < 0) {
+      if (
+        !Number.isFinite(rentNumber) ||
+        rentNumber < 0
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid monthly rent",
@@ -725,7 +871,10 @@ export const updateHostel = async (
     if (securityDeposit !== undefined) {
       const depositNumber = Number(securityDeposit);
 
-      if (!Number.isFinite(depositNumber) || depositNumber < 0) {
+      if (
+        !Number.isFinite(depositNumber) ||
+        depositNumber < 0
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid security deposit",
@@ -746,10 +895,15 @@ export const updateHostel = async (
       }
 
       const validAmenities = amenities.filter(
-        (amenity): amenity is string => typeof amenity === "string",
+        (
+          amenity,
+        ): amenity is string =>
+          typeof amenity === "string",
       );
 
-      if (validAmenities.length !== amenities.length) {
+      if (
+        validAmenities.length !== amenities.length
+      ) {
         res.status(400).json({
           success: false,
           message: "All amenities must be strings",
@@ -769,9 +923,13 @@ export const updateHostel = async (
         return;
       }
 
-      const validImages = images.filter(isUploadedImage);
+      const validImages = images.filter(
+        isUploadedImage,
+      );
 
-      if (validImages.length !== images.length) {
+      if (
+        validImages.length !== images.length
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid image data",
@@ -810,7 +968,10 @@ export const updateHostel = async (
       hostel,
     });
   } catch (error) {
-    logger.error({ error }, "Failed to update hostel");
+    logger.error(
+      { error },
+      "Failed to update hostel",
+    );
 
     res.status(500).json({
       success: false,
@@ -818,6 +979,7 @@ export const updateHostel = async (
     });
   }
 };
+
 export const deleteHostelImage = async (
   req: AuthRequest,
   res: Response,
@@ -856,19 +1018,46 @@ export const deleteHostelImage = async (
       return;
     }
 
-    const isOwner = hostel.owner.toString() === req.user.id;
+    const isOwner =
+      hostel.owner.toString() === req.user.id;
+
     const isAdmin = req.user.role === "admin";
 
     if (!isOwner && !isAdmin) {
       res.status(403).json({
         success: false,
-        message: "You are not allowed to modify this hostel",
+        message:
+          "You are not allowed to modify this hostel",
       });
       return;
     }
 
+    if (isOwner) {
+      const owner = await User.findById(req.user.id).select(
+        "_id role isActive",
+      );
+
+      if (!owner || owner.role !== "owner") {
+        res.status(403).json({
+          success: false,
+          message: "Only owners can modify hostel images",
+        });
+        return;
+      }
+
+      if (!owner.isActive) {
+        res.status(403).json({
+          success: false,
+          message: "Your owner account is inactive",
+        });
+        return;
+      }
+    }
+
     const image = hostel.images.find(
-      (item) => item._id !== undefined && item._id.toString() === imageId,
+      (item) =>
+        item._id !== undefined &&
+        item._id.toString() === imageId,
     );
 
     if (!image) {
@@ -879,10 +1068,14 @@ export const deleteHostelImage = async (
       return;
     }
 
-    await cloudinary.uploader.destroy(image.publicId);
+    await cloudinary.uploader.destroy(
+      image.publicId,
+    );
 
     hostel.images = hostel.images.filter(
-      (item) => item._id === undefined || item._id.toString() !== imageId,
+      (item) =>
+        item._id === undefined ||
+        item._id.toString() !== imageId,
     );
 
     await hostel.save();
@@ -902,7 +1095,10 @@ export const deleteHostelImage = async (
       images: hostel.images,
     });
   } catch (error) {
-    logger.error({ error }, "Failed to delete hostel image");
+    logger.error(
+      { error },
+      "Failed to delete hostel image",
+    );
 
     res.status(500).json({
       success: false,
@@ -910,6 +1106,7 @@ export const deleteHostelImage = async (
     });
   }
 };
+
 export const deleteHostel = async (
   req: AuthRequest,
   res: Response,
@@ -925,7 +1122,10 @@ export const deleteHostel = async (
 
     const { id } = req.params;
 
-    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
+    if (
+      typeof id !== "string" ||
+      !Types.ObjectId.isValid(id)
+    ) {
       res.status(400).json({
         success: false,
         message: "Invalid hostel ID",
@@ -943,16 +1143,40 @@ export const deleteHostel = async (
       return;
     }
 
-    const isOwner = hostel.owner.toString() === req.user.id;
+    const isOwner =
+      hostel.owner.toString() === req.user.id;
 
     const isAdmin = req.user.role === "admin";
 
     if (!isOwner && !isAdmin) {
       res.status(403).json({
         success: false,
-        message: "You do not have permission to delete this hostel",
+        message:
+          "You do not have permission to delete this hostel",
       });
       return;
+    }
+
+    if (isOwner) {
+      const owner = await User.findById(req.user.id).select(
+        "_id role isActive",
+      );
+
+      if (!owner || owner.role !== "owner") {
+        res.status(403).json({
+          success: false,
+          message: "Only owners can delete hostels",
+        });
+        return;
+      }
+
+      if (!owner.isActive) {
+        res.status(403).json({
+          success: false,
+          message: "Your owner account is inactive",
+        });
+        return;
+      }
     }
 
     hostel.isActive = false;
@@ -972,7 +1196,10 @@ export const deleteHostel = async (
       message: "Hostel deleted successfully",
     });
   } catch (error) {
-    logger.error({ error }, "Failed to delete hostel");
+    logger.error(
+      { error },
+      "Failed to delete hostel",
+    );
 
     res.status(500).json({
       success: false,
@@ -980,3 +1207,4 @@ export const deleteHostel = async (
     });
   }
 };
+;
