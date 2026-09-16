@@ -1,5 +1,7 @@
+
 import jwt from "jsonwebtoken";
 import type { NextFunction, Request, Response } from "express";
+import { Types } from "mongoose";
 
 import User from "../models/User.js";
 import logger from "../utils/logger.js";
@@ -16,6 +18,19 @@ interface JwtPayload {
   role: string;
 }
 
+const isJwtPayload = (
+  value: string | jwt.JwtPayload,
+): value is JwtPayload => {
+  if (typeof value === "string") {
+    return false;
+  }
+
+  return (
+    typeof value.userId === "string" &&
+    typeof value.role === "string"
+  );
+};
+
 export const protect = async (
   req: AuthRequest,
   res: Response,
@@ -24,7 +39,10 @@ export const protect = async (
   try {
     const authorization = req.headers.authorization;
 
-    if (!authorization || !authorization.startsWith("Bearer ")) {
+    if (
+      !authorization ||
+      !authorization.startsWith("Bearer ")
+    ) {
       res.status(401).json({
         success: false,
         message: "Authentication token is required",
@@ -32,7 +50,7 @@ export const protect = async (
       return;
     }
 
-    const token = authorization.split(" ")[1];
+    const token = authorization.slice(7).trim();
 
     if (!token) {
       res.status(401).json({
@@ -45,10 +63,32 @@ export const protect = async (
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
-      throw new Error("JWT_SECRET is not defined");
+      logger.error("JWT_SECRET is not defined");
+
+      res.status(500).json({
+        success: false,
+        message: "Authentication service is not configured",
+      });
+      return;
     }
 
-    const decoded = jwt.verify(token, secret) as JwtPayload;
+    const decoded = jwt.verify(token, secret);
+
+    if (!isJwtPayload(decoded)) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid authentication token",
+      });
+      return;
+    }
+
+    if (!Types.ObjectId.isValid(decoded.userId)) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid authentication token",
+      });
+      return;
+    }
 
     const user = await User.findById(decoded.userId).select(
       "_id role isActive",
@@ -77,15 +117,26 @@ export const protect = async (
 
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
+    if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({
         success: false,
-        message: "Invalid or expired token",
+        message: "Authentication token has expired",
       });
       return;
     }
 
-    logger.error({ error }, "Authentication failed");
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid authentication token",
+      });
+      return;
+    }
+
+    logger.error(
+      { error },
+      "Authentication failed",
+    );
 
     res.status(500).json({
       success: false,
@@ -95,7 +146,11 @@ export const protect = async (
 };
 
 export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+  return (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ): void => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -115,3 +170,4 @@ export const authorize = (...roles: string[]) => {
     next();
   };
 };
+

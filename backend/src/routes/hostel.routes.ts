@@ -1,15 +1,16 @@
 import { Router } from "express";
 
 import {
-createHostel,
-deleteHostel,
-getHostelById,
-getHostels,
-updateHostel,
-uploadHostelImages,
+  createHostel,
+  deleteHostel,
+  deleteHostelImage,
+  getHostelById,
+  getHostels,
+  updateHostel,
+  uploadHostelImages,
 } from "../controllers/hostel.controller.js";
-import upload from "../middleware/upload.middleware.js";
 
+import upload from "../middleware/upload.middleware.js";
 import { protect } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
 
@@ -24,6 +25,7 @@ router.post("/", protect, authorize("owner", "admin"), createHostel);
 router.patch("/:id", protect, authorize("owner", "admin"), updateHostel);
 
 router.delete("/:id", protect, authorize("owner", "admin"), deleteHostel);
+
 router.post(
   "/upload-images",
   protect,
@@ -31,6 +33,7 @@ router.post(
   upload.array("images", 10),
   uploadHostelImages,
 );
+
 router.post(
   "/:id/images",
   protect,
@@ -40,10 +43,10 @@ router.post(
 );
 
 router.delete(
-  "/:id/images/:publicId",
+  "/:id/images/:imageId",
   protect,
   authorize("owner", "admin"),
-  uploadHostelImages,
+  deleteHostelImage,
 );
 
 export default router;

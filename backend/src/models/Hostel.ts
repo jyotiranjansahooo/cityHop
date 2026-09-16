@@ -1,11 +1,10 @@
 import { Schema, model, models, Types, type Model } from "mongoose";
 export type HostelType = "boys" | "girls" | "co-living";
 
-
 export interface IHostelImage {
-_id?: Types.ObjectId;
-url: string;
-publicId: string;
+  _id?: Types.ObjectId;
+  url: string;
+  publicId: string;
 }
 
 export interface IHostel {

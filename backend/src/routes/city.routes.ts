@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   createCity,
   getCities,
+  getCityById,
 } from "../controllers/city.controller.js";
 
 import { protect } from "../middleware/auth.middleware.js";
@@ -12,11 +13,8 @@ const router = Router();
 
 router.get("/", getCities);
 
-router.post(
-  "/",
-  protect,
-  authorize("admin"),
-  createCity,
-);
+router.get("/:id", getCityById);
+
+router.post("/", protect, authorize("admin"), createCity);
 
 export default router;

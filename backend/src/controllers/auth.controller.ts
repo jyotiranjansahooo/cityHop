@@ -423,3 +423,236 @@ export const changeOwnerPassword = async (
     });
   }
 };
+
+export const getUserProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const user = await User.findById(req.user.id).select(
+      "_id name email role isActive createdAt updatedAt",
+    );
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    if (user.role !== "user") {
+      res.status(403).json({
+        success: false,
+        message: "Only normal users can access this profile",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to fetch user profile");
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch profile",
+    });
+  }
+};
+
+export const updateUserProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const { name } = req.body;
+
+    if (name !== undefined && typeof name !== "string") {
+      res.status(400).json({
+        success: false,
+        message: "Name must be a string",
+      });
+      return;
+    }
+
+    if (name !== undefined && !name.trim()) {
+      res.status(400).json({
+        success: false,
+        message: "Name cannot be empty",
+      });
+      return;
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    if (user.role !== "user") {
+      res.status(403).json({
+        success: false,
+        message: "Only normal users can update this profile",
+      });
+      return;
+    }
+
+    if (!user.isActive) {
+      res.status(403).json({
+        success: false,
+        message: "Your account is inactive",
+      });
+      return;
+    }
+
+    if (name !== undefined) {
+      user.name = name.trim();
+    }
+
+    await user.save();
+
+    const updatedUser = await User.findById(user._id).select(
+      "_id name email role isActive createdAt updatedAt",
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to update user profile");
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile",
+    });
+  }
+};
+
+export const changeUserPassword = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (typeof currentPassword !== "string" || !currentPassword) {
+      res.status(400).json({
+        success: false,
+        message: "Current password is required",
+      });
+      return;
+    }
+
+    if (typeof newPassword !== "string" || !newPassword) {
+      res.status(400).json({
+        success: false,
+        message: "New password is required",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({
+        success: false,
+        message: "New password must be at least 8 characters long",
+      });
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      res.status(400).json({
+        success: false,
+        message: "New password must be different from current password",
+      });
+      return;
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    if (user.role !== "user") {
+      res.status(403).json({
+        success: false,
+        message: "Only normal users can change this password",
+      });
+      return;
+    }
+
+    if (!user.isActive) {
+      res.status(403).json({
+        success: false,
+        message: "Your account is inactive",
+      });
+      return;
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordCorrect) {
+      res.status(401).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+      return;
+    }
+
+    user.password = newPassword;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to change user password");
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to change password",
+    });
+  }
+};

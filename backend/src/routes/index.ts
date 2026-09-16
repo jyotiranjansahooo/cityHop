@@ -5,6 +5,8 @@ import hostelRouter from "./hostel.routes.js";
 import bookingRouter from "./booking.routes.js";
 import ownerRouter from "./owner.routes.js";
 import adminRouter from "./admin.routes.js";
+import areaRouter from "./area.routes.js";
+import userRouter from "./user.routes.js";
 
 const router = Router();
 
@@ -21,6 +23,7 @@ router.use("/auth", authRouter);
 router.use("/hostels", hostelRouter);
 router.use("/bookings", bookingRouter);
 router.use("/admin", adminRouter);
-
+router.use("/areas", areaRouter);
+router.use("/users", userRouter);
 
 export default router;

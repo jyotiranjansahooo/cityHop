@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import City from "../models/City.js";
 import logger from "../utils/logger.js";
+import { Types } from "mongoose";
 
 export const createCity = async (
   req: Request,
@@ -85,6 +86,48 @@ export const getCities = async (
     });
   } catch (error) {
     logger.error({ error }, "Failed to get cities");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getCityById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid city ID",
+      });
+      return;
+    }
+
+    const city = await City.findOne({
+      _id: new Types.ObjectId(id),
+      isActive: true,
+    });
+
+    if (!city) {
+      res.status(404).json({
+        success: false,
+        message: "City not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      city,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to get city details");
 
     res.status(500).json({
       success: false,

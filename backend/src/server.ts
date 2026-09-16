@@ -7,6 +7,9 @@ import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { apiRateLimiter } from "./middleware/rate-limit.middleware.js";
+import errorHandler from "./middleware/error.middleware.js";
+
 import connectDB from "./config/db.js";
 import apiRouter from "./routes/index.js";
 import logger from "./utils/logger.js";
@@ -46,7 +49,11 @@ app.get("/", (_req, res) => {
   });
 });
 
+app.use("/api", apiRateLimiter);
+
 app.use("/api", apiRouter);
+
+app.use(errorHandler);
 
 io.on("connection", (socket) => {
   logger.info({ socketId: socket.id }, "Socket connected");
