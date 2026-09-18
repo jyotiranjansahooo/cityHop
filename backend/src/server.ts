@@ -1,4 +1,5 @@
-import dotenv from "dotenv";
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -9,12 +10,9 @@ import { fileURLToPath } from "url";
 
 import { apiRateLimiter } from "./middleware/rate-limit.middleware.js";
 import errorHandler from "./middleware/error.middleware.js";
-
 import connectDB from "./config/db.js";
 import apiRouter from "./routes/index.js";
 import logger from "./utils/logger.js";
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,7 +48,6 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api", apiRateLimiter);
-
 app.use("/api", apiRouter);
 
 app.use(errorHandler);
@@ -70,11 +67,10 @@ const startServer = async (): Promise<void> => {
     const PORT = Number(process.env.PORT) || 5000;
 
     httpServer.listen(PORT, () => {
-      logger.info(`CityHop API running on port ${PORT}`);
+      logger.info({ port: PORT }, "CityHop API running");
     });
   } catch (error) {
     logger.error({ error }, "Server failed to start");
-
     process.exit(1);
   }
 };

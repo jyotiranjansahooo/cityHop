@@ -1,4 +1,4 @@
-import { Schema, model, models, Types, type Model } from "mongoose";
+import mongoose, { Schema, model, Types, type Model } from "mongoose";
 export type HostelType = "boys" | "girls" | "co-living";
 
 export interface IHostelImage {
@@ -135,8 +135,8 @@ const hostelSchema = new Schema<IHostel>(
 );
 
 const Hostel: Model<IHostel> =
-  models.Hostel instanceof Function
-    ? (models.Hostel as Model<IHostel>)
+  mongoose.models.Hostel instanceof Function
+    ? (mongoose.models.Hostel as Model<IHostel>)
     : model<IHostel>("Hostel", hostelSchema);
 
 export default Hostel;

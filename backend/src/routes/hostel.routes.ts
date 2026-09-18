@@ -2,50 +2,43 @@ import { Router } from "express";
 
 import {
   createHostel,
-  deleteHostel,
-  deleteHostelImage,
-  getHostelById,
   getHostels,
+  getHostelById,
   updateHostel,
+  deleteHostel,
   uploadHostelImages,
+  deleteHostelImage,
 } from "../controllers/hostel.controller.js";
 
-import upload from "../middleware/upload.middleware.js";
 import { protect } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
+import upload from "../middleware/upload.middleware.js";
 
 const router = Router();
 
+// Public
 router.get("/", getHostels);
-
 router.get("/:id", getHostelById);
 
-router.post("/", protect, authorize("owner", "admin"), createHostel);
+// Owner
+router.post("/", protect, authorize("owner"), createHostel);
 
-router.patch("/:id", protect, authorize("owner", "admin"), updateHostel);
+router.patch("/:id", protect, authorize("owner"), updateHostel);
 
-router.delete("/:id", protect, authorize("owner", "admin"), deleteHostel);
-
-router.post(
-  "/upload-images",
-  protect,
-  authorize("owner", "admin"),
-  upload.array("images", 10),
-  uploadHostelImages,
-);
+router.delete("/:id", protect, authorize("owner"), deleteHostel);
 
 router.post(
   "/:id/images",
   protect,
-  authorize("owner", "admin"),
+  authorize("owner"),
   upload.array("images", 10),
   uploadHostelImages,
 );
 
 router.delete(
-  "/:id/images/:imageId",
+  "/:id/images/:publicId",
   protect,
-  authorize("owner", "admin"),
+  authorize("owner"),
   deleteHostelImage,
 );
 
