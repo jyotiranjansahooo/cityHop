@@ -11,19 +11,9 @@ import { authorize } from "../middleware/role.middleware.js";
 
 const router = Router();
 
-router.get(
-  "/profile",
-  protect,
-  authorize("user"),
-  getUserProfile,
-);
+router.get("/profile", protect, authorize("user"), getUserProfile);
 
-router.patch(
-  "/profile",
-  protect,
-  authorize("user"),
-  updateUserProfile,
-);
+router.patch("/profile", protect, authorize("user"), updateUserProfile);
 
 router.patch(
   "/profile/password",
@@ -33,4 +23,3 @@ router.patch(
 );
 
 export default router;
-

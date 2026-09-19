@@ -51,7 +51,7 @@ export const approveBooking = async (
     if (!req.user) {
       res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: "Authentication required",
       });
       return;
     }
@@ -66,10 +66,20 @@ export const approveBooking = async (
       return;
     }
 
-    if (!Types.ObjectId.isValid(req.user.id)) {
-      res.status(400).json({
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      res.status(404).json({
         success: false,
-        message: "Invalid owner ID",
+        message: "Booking not found",
+      });
+      return;
+    }
+
+    if (booking.owner.toString() !== req.user.id) {
+      res.status(403).json({
+        success: false,
+        message: "You are not allowed to manage this booking",
       });
       return;
     }
@@ -92,19 +102,6 @@ export const approveBooking = async (
       return;
     }
 
-    const booking = await Booking.findOne({
-      _id: id,
-      owner: req.user.id,
-    });
-
-    if (!booking) {
-      res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-      return;
-    }
-
     if (booking.status !== "pending") {
       res.status(400).json({
         success: false,
@@ -113,52 +110,18 @@ export const approveBooking = async (
       return;
     }
 
-    const hostel = await Hostel.findById(booking.hostel).select(
-      "_id owner isActive",
-    );
-
-    if (!hostel) {
-      res.status(404).json({
-        success: false,
-        message: "Hostel not found",
-      });
-      return;
-    }
-
-    if (hostel.owner.toString() !== owner._id.toString()) {
-      res.status(403).json({
-        success: false,
-        message: "This hostel does not belong to your owner account",
-      });
-      return;
-    }
-
-    if (!hostel.isActive) {
-      res.status(403).json({
-        success: false,
-        message: "This hostel is inactive",
-      });
-      return;
-    }
-
     const conflictingBooking = await Booking.findOne({
-      _id: {
-        $ne: booking._id,
-      },
+      _id: { $ne: booking._id },
       hostel: booking.hostel,
       status: "approved",
-      checkInDate: {
-        $lt: booking.checkOutDate,
-      },
-      checkOutDate: {
-        $gt: booking.checkInDate,
-      },
+      checkInDate: { $lt: booking.checkOutDate },
+      checkOutDate: { $gt: booking.checkInDate },
     });
 
     if (conflictingBooking) {
       res.status(409).json({
         success: false,
-        message: "This booking conflicts with an existing approved booking",
+        message: "The hostel is already booked for these dates",
       });
       return;
     }
@@ -169,15 +132,8 @@ export const approveBooking = async (
 
     const updatedBooking = await Booking.findById(booking._id)
       .populate("user", "name email")
-      .populate("hostel", "name images city area monthlyRent");
-
-    logger.info(
-      {
-        bookingId: booking._id.toString(),
-        ownerId: req.user.id,
-      },
-      "Booking approved",
-    );
+      .populate("hostel", "name address monthlyRent")
+      .populate("owner", "name email");
 
     res.status(200).json({
       success: true,
@@ -186,6 +142,113 @@ export const approveBooking = async (
     });
   } catch (error) {
     logger.error({ error }, "Failed to approve booking");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const rejectBooking = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const { id } = req.params;
+
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid booking ID",
+      });
+      return;
+    }
+
+    const { rejectionReason } = req.body as {
+      rejectionReason?: unknown;
+    };
+
+    if (rejectionReason !== undefined && typeof rejectionReason !== "string") {
+      res.status(400).json({
+        success: false,
+        message: "Rejection reason must be a string",
+      });
+      return;
+    }
+
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+      return;
+    }
+
+    if (booking.owner.toString() !== req.user.id) {
+      res.status(403).json({
+        success: false,
+        message: "You are not allowed to manage this booking",
+      });
+      return;
+    }
+
+    const owner = await User.findById(req.user.id).select("_id role isActive");
+
+    if (!owner || owner.role !== "owner") {
+      res.status(403).json({
+        success: false,
+        message: "Only owners can reject bookings",
+      });
+      return;
+    }
+
+    if (!owner.isActive) {
+      res.status(403).json({
+        success: false,
+        message: "Your owner account is inactive",
+      });
+      return;
+    }
+
+    if (booking.status !== "pending") {
+      res.status(400).json({
+        success: false,
+        message: "Only pending bookings can be rejected",
+      });
+      return;
+    }
+
+    booking.status = "rejected";
+
+    if (typeof rejectionReason === "string") {
+      booking.rejectionReason = rejectionReason.trim();
+    }
+
+    await booking.save();
+
+    const updatedBooking = await Booking.findById(booking._id)
+      .populate("user", "name email")
+      .populate("hostel", "name address monthlyRent")
+      .populate("owner", "name email");
+
+    res.status(200).json({
+      success: true,
+      message: "Booking rejected successfully",
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to reject booking");
 
     res.status(500).json({
       success: false,
@@ -398,85 +461,6 @@ export const createBooking = async (
     res.status(500).json({
       success: false,
       message: "Failed to create booking",
-    });
-  }
-};
-
-export const rejectBooking = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-      });
-      return;
-    }
-
-    const { id } = req.params;
-    const { rejectionReason } = req.body;
-
-    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid booking ID",
-      });
-      return;
-    }
-
-    const booking = await Booking.findOne({
-      _id: id,
-      owner: req.user.id,
-    });
-
-    if (!booking) {
-      res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-      return;
-    }
-
-    if (booking.status !== "pending") {
-      res.status(400).json({
-        success: false,
-        message: "Only pending bookings can be rejected",
-      });
-      return;
-    }
-
-    booking.status = "rejected";
-
-    if (
-      typeof rejectionReason === "string" &&
-      rejectionReason.trim().length > 0
-    ) {
-      booking.rejectionReason = rejectionReason.trim();
-    }
-
-    await booking.save();
-
-    logger.info(
-      {
-        bookingId: booking._id.toString(),
-        ownerId: req.user.id,
-      },
-      "Booking rejected",
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Booking rejected successfully",
-      booking,
-    });
-  } catch (error) {
-    logger.error({ error }, "Failed to reject booking");
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
     });
   }
 };
@@ -700,9 +684,7 @@ export const cancelMyBooking = async (
       return;
     }
 
-    const user = await User.findById(req.user.id).select(
-      "_id role isActive",
-    );
+    const user = await User.findById(req.user.id).select("_id role isActive");
 
     if (!user) {
       res.status(404).json({
@@ -741,10 +723,7 @@ export const cancelMyBooking = async (
       return;
     }
 
-    if (
-      booking.status !== "pending" &&
-      booking.status !== "approved"
-    ) {
+    if (booking.status !== "pending" && booking.status !== "approved") {
       res.status(400).json({
         success: false,
         message: "This booking cannot be cancelled",
@@ -779,4 +758,3 @@ export const cancelMyBooking = async (
     });
   }
 };
-
