@@ -1,7 +1,7 @@
 import HomeNavbar from "./components/home/HomeNavbar";
 import HeroSection from "./components/home/HeroSection";
 import HomeLoader from "./components/home/HomeLoader";
-
+import StatsSection from "./components/home/StatsSection";
 export default function HomePage(): React.ReactElement {
   return (
     <HomeLoader>
@@ -14,6 +14,7 @@ export default function HomePage(): React.ReactElement {
           <HomeNavbar />
 
           <HeroSection />
+          <StatsSection />
         </div>
       </main>
     </HomeLoader>
