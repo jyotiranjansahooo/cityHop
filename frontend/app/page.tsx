@@ -1,4 +1,3 @@
-import HomeNavbar from "./components/home/HomeNavbar";
 import HeroSection from "./components/home/HeroSection";
 import HomeLoader from "./components/home/HomeLoader";
 import StatsSection from "./components/home/StatsSection";
@@ -6,6 +5,8 @@ import FeaturesSection from "./components/home/FeaturesSection";
 import CitiesSection from "./components/home/CitiesSection";
 import MovingSection from "./components/home/MovingSection";
 import TransportSection from "./components/home/TransportSection";
+import AboutSection from "./components/home/AboutSection";
+
 export default function HomePage(): React.ReactElement {
   return (
     <HomeLoader>
@@ -15,13 +16,14 @@ export default function HomePage(): React.ReactElement {
 
           <div className="pointer-events-none absolute right-[-10rem] top-20 h-[30rem] w-[30rem] rounded-full bg-[#D3C8B8]/35 blur-3xl" />
 
-          <HomeNavbar />
           <HeroSection />
           <StatsSection />
           <FeaturesSection />
           <CitiesSection />
           <MovingSection />
           <TransportSection/>
+          <AboutSection/>
+          
         </div>
       </main>
     </HomeLoader>
