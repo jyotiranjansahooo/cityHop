@@ -3,9 +3,11 @@ import { ArrowRight, MapPin, Search } from "lucide-react";
 
 export default function HeroSection(): React.ReactElement {
   return (
-    <section className="relative z-10 mx-auto max-w-[1440px] px-5 pb-7 sm:px-8 lg:px-12">
+    <section
+      id="moving"
+      className="scroll-mt-4 overflow-hidden bg-[#E8ECF3] px-6 py-20 sm:px-10 lg:px-14"
+    >
       <div className="relative min-h-[620px] overflow-hidden rounded-[38px] border border-[#C3CDD4] bg-[#D8D7D1] shadow-[0_30px_80px_rgba(38,54,64,0.14)]">
-
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_35%,rgba(167,189,211,0.8),transparent_30%),linear-gradient(115deg,#DCD8D0_0%,#D5D6D1_45%,#B9C8D3_100%)]" />
 
         <div className="absolute right-[-8%] top-[8%] h-[480px] w-[58%] rounded-[45%] bg-[#9FB6C8]/45 blur-[1px] lg:h-[560px]" />
@@ -21,9 +23,7 @@ export default function HeroSection(): React.ReactElement {
         </div>
 
         <div className="relative z-10 flex min-h-[620px] flex-col justify-between p-7 sm:p-10 lg:p-14">
-
           <div className="max-w-[610px] ">
-
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#9EADB7] bg-[#D9D8D2]/80 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-[#526573] backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-[#6B8FB1]" />
               New city. New beginnings.
@@ -31,9 +31,7 @@ export default function HeroSection(): React.ReactElement {
 
             <h1 className="max-w-[650px] font-[var(--font-fredoka)] text-5xl font-bold leading-[0.98] tracking-[-0.055em] text-[#263640] sm:text-6xl lg:text-[76px]">
               A smoother move to a{" "}
-              <span className="text-[#6689A5]">
-                brighter tomorrow.
-              </span>
+              <span className="text-[#6689A5]">brighter tomorrow.</span>
             </h1>
 
             <p className="mt-6 max-w-[560px] text-base leading-7 text-[#526573] sm:text-lg">
@@ -62,7 +60,6 @@ export default function HeroSection(): React.ReactElement {
           {/* Search panel */}
           <div className="mt-12 lg:mt-0">
             <div className="max-w-[850px] rounded-[26px] border border-[#B8C2C8]/80 bg-[#DDE0DD]/85 p-3 shadow-[0_20px_60px_rgba(38,54,64,0.12)] backdrop-blur-xl">
-
               <div className="flex flex-wrap gap-2 border-b border-[#BBC4C8] px-2 pb-3">
                 <button className="rounded-full bg-[#526F85] px-5 py-2 text-xs font-bold text-[#E8ECF3]">
                   Homes
@@ -82,7 +79,6 @@ export default function HeroSection(): React.ReactElement {
               </div>
 
               <div className="grid gap-3 p-2 sm:grid-cols-[1fr_1fr_auto]">
-
                 <div className="rounded-2xl border border-[#BBC5CA] bg-[#D5D8D7] px-4 py-3">
                   <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#70808A]">
                     <MapPin size={13} />
@@ -109,7 +105,6 @@ export default function HeroSection(): React.ReactElement {
                   <Search size={18} />
                   Search
                 </button>
-
               </div>
             </div>
           </div>
@@ -126,7 +121,6 @@ export default function HeroSection(): React.ReactElement {
 
           <div className="mt-3 h-px w-16 bg-[#6689A5]" />
         </div>
-
       </div>
     </section>
   );

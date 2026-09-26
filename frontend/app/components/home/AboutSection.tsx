@@ -1,12 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  ArrowUpRight,
-  Compass,
-  MapPinned,
-  Sparkles,
-} from "lucide-react";
+import { ArrowUpRight, Compass, MapPinned, Sparkles } from "lucide-react";
 
 const aboutPoints = [
   {
@@ -31,7 +26,10 @@ const aboutPoints = [
 
 export default function AboutSection(): React.ReactElement {
   return (
-    <section className="overflow-hidden bg-[#E8ECF3] px-6 py-20 sm:px-10 lg:px-14">
+    <section
+      id="about"
+      className="scroll-mt-4 overflow-hidden bg-[#E8ECF3] px-6 py-20 sm:px-10 lg:px-14"
+    >
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <motion.div
@@ -51,10 +49,10 @@ export default function AboutSection(): React.ReactElement {
             </h2>
 
             <p className="mt-6 max-w-xl text-base leading-7 text-[#667680]">
-              Moving to another city involves more than finding an address.
-              You need to understand the area, find somewhere to stay and
-              figure out how to get there. CityHop brings these pieces
-              together into one journey.
+              Moving to another city involves more than finding an address. You
+              need to understand the area, find somewhere to stay and figure out
+              how to get there. CityHop brings these pieces together into one
+              journey.
             </p>
 
             <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#526F85] px-5 py-3 text-sm font-semibold text-[#E8ECF3]">

@@ -1,12 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  ArrowUpRight,
-  BusFront,
-  CarFront,
-  TrainFront,
-} from "lucide-react";
+import { ArrowUpRight, BusFront, CarFront, TrainFront } from "lucide-react";
 
 interface TransportOption {
   title: string;
@@ -37,7 +32,11 @@ const transportOptions: TransportOption[] = [
 
 export default function TransportSection(): React.ReactElement {
   return (
-    <section className="bg-[#D6DADB] px-6 py-20 sm:px-10 lg:px-14">
+    <section
+      id="transport"
+      className="scroll-mt-4 bg-[#D6DADB] px-6 py-20 sm:px-10 lg:px-14"
+    >
+      
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
           <div>
@@ -52,9 +51,9 @@ export default function TransportSection(): React.ReactElement {
             </h2>
 
             <p className="mt-6 max-w-lg text-base leading-7 text-[#667680]">
-              CityHop is designed to help you understand the transport
-              options available for your journey so you can plan your move
-              around your destination.
+              CityHop is designed to help you understand the transport options
+              available for your journey so you can plan your move around your
+              destination.
             </p>
 
             <div className="mt-8 flex items-center gap-2 text-sm font-semibold text-[#526F85]">

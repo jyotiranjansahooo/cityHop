@@ -35,7 +35,10 @@ export default function CitiesSection(): React.ReactElement {
   }, []);
 
   return (
-    <section className="bg-[#D6DADB] px-6 py-20 sm:px-10 lg:px-14">
+    <section
+      id="cities"
+      className="scroll-mt-4 bg-[#D6DADB] px-6 py-20 sm:px-10 lg:px-14"
+    >
       <div className="mx-auto max-w-7xl">
         <div className="mb-12 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div className="max-w-2xl">
@@ -51,8 +54,8 @@ export default function CitiesSection(): React.ReactElement {
           </div>
 
           <p className="max-w-md text-sm leading-6 text-[#667680] sm:text-base">
-            Explore cities currently available on CityHop and discover the
-            areas and stays available in each destination.
+            Explore cities currently available on CityHop and discover the areas
+            and stays available in each destination.
           </p>
         </div>
 
@@ -85,8 +88,8 @@ export default function CitiesSection(): React.ReactElement {
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#667680]">
-              We could not load the available destinations right now. Please
-              try again shortly.
+              We could not load the available destinations right now. Please try
+              again shortly.
             </p>
           </div>
         ) : cities.length === 0 ? (
