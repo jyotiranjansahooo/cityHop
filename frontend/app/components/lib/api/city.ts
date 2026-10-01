@@ -19,4 +19,3 @@ export const getCities = async (): Promise<City[]> => {
 
   return response.cities;
 };
-

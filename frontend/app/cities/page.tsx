@@ -9,10 +9,12 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import LocationAutocomplete, {
   type SelectedLocation,
 } from "../components/moving/LocationAutocomplete";
+import RemoteImage from "../components/ui/RemoteImage";
+import Skeleton from "../components/ui/Skeleton";
 
 interface City {
   _id: string;
@@ -31,26 +33,15 @@ interface CitiesResponse {
 }
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export default function CitiesPage(): React.ReactElement {
   const [selectedLocation, setSelectedLocation] =
-    useState<SelectedLocation | null>(
-      null,
-    );
+    useState<SelectedLocation | null>(null);
 
-  const [search, setSearch] =
-    useState("");
-
-  const [cities, setCities] =
-    useState<City[]>([]);
-
-  const [isLoading, setIsLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
+  const [cities, setCities] = useState<City[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const loadCityResults = async (
     location: SelectedLocation,
@@ -59,95 +50,54 @@ export default function CitiesPage(): React.ReactElement {
       setIsLoading(true);
       setError("");
 
-      const response =
-        await fetch(
-          API_URL +
-            "/cities?search=" +
-            encodeURIComponent(
-              location.name,
-            ),
-          {
-            method: "GET",
-            cache: "no-store",
-          },
-        );
+      const params = new URLSearchParams({
+        search: location.name,
+      });
 
-      const data: CitiesResponse =
-        await response.json();
+      const response = await fetch(
+        API_URL + "/cities?" + params.toString(),
+        {
+          method: "GET",
+          cache: "no-store",
+        },
+      );
+
+      const data: CitiesResponse = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-            "Unable to load city information.",
+          data.message || "Unable to load city information.",
         );
       }
 
-      const cityList =
-        data.cities ||
-        data.data ||
-        [];
+      const cityList = data.cities || data.data || [];
 
       setCities(cityList);
     } catch (requestError) {
-      console.error(
-        "City loading error:",
-        requestError,
-      );
+      console.error("City loading error:", requestError);
+
+      setCities([]);
 
       setError(
         requestError instanceof Error
           ? requestError.message
           : "Unable to load city information right now.",
       );
-
-      setCities([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCitySelect = (
-    location: SelectedLocation,
-  ): void => {
+  const handleCitySelect = (location: SelectedLocation): void => {
     setSelectedLocation(location);
-    setSearch(location.name);
-
     void loadCityResults(location);
   };
 
   const clearCitySearch = (): void => {
     setSelectedLocation(null);
-    setSearch("");
     setCities([]);
     setError("");
   };
-
-  const filteredCities = useMemo(() => {
-    if (!selectedLocation) {
-      return [];
-    }
-
-    const normalizedName =
-      selectedLocation.name
-        .trim()
-        .toLowerCase();
-
-    return cities.filter(
-      (city) =>
-        city.name
-          .trim()
-          .toLowerCase()
-          .includes(normalizedName) ||
-        normalizedName.includes(
-          city.name
-            .trim()
-            .toLowerCase(),
-        ),
-    );
-  }, [
-    cities,
-    selectedLocation,
-  ]);
 
   return (
     <main className="min-h-screen bg-[#E8ECF3] text-[#263640]">
@@ -171,33 +121,26 @@ export default function CitiesPage(): React.ReactElement {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-7 text-[#667680] sm:text-lg">
-              Explore cities across Odisha,
-              discover their areas and find the
-              information you need before making
-              your next move.
+              Explore cities across Odisha, discover their areas and
+              find the information you need before making your next
+              move.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-            <LocationAutocomplete
-              label="Search city"
-              placeholder="Search Bhubaneswar, Cuttack, Puri..."
-              selectedLocation={
-                selectedLocation
-              }
-              onSelect={
-                handleCitySelect
-              }
-              onClear={
-                clearCitySearch
-              }
-              featureTypes="place,locality,district,region"
-            />
+          <div className="relative z-30 mt-10 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="relative z-30">
+              <LocationAutocomplete
+                label="Search city"
+                placeholder="Search Bhubaneswar, Cuttack, Puri..."
+                selectedLocation={selectedLocation}
+                onSelect={handleCitySelect}
+                onClear={clearCitySearch}
+                featureTypes="place,locality,district,region"
+              />
+            </div>
 
             <div className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-[#B9C6D0] bg-[#D6DADB]/80 px-5 text-sm font-bold text-[#526F85]">
-              <SlidersHorizontal
-                size={17}
-              />
+              <SlidersHorizontal size={17} />
               Odisha only
             </div>
           </div>
@@ -213,7 +156,9 @@ export default function CitiesPage(): React.ReactElement {
               </p>
 
               <h2 className="mt-2 font-[var(--font-fredoka)] text-3xl font-semibold text-[#263640] sm:text-4xl">
-                Explore your selected city
+                {selectedLocation
+                  ? "Explore your selected city"
+                  : "Explore Odisha cities"}
               </h2>
             </div>
 
@@ -224,28 +169,24 @@ export default function CitiesPage(): React.ReactElement {
             )}
           </div>
 
-          {!selectedLocation &&
-            !isLoading && (
-              <div className="rounded-[28px] border border-[#B9C6D0] bg-[#D6DADB]/70 px-6 py-16 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#A7BDD3] text-[#526F85]">
-                  <Search size={27} />
-                </div>
-
-                <h3 className="mt-5 font-[var(--font-fredoka)] text-2xl font-semibold">
-                  Search for a city
-                </h3>
-
-                <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#667680]">
-                  Start typing a city name above
-                  and select an Odisha location
-                  from the suggestions.
-                </p>
+          {!selectedLocation && !isLoading && (
+            <div className="rounded-[28px] border border-[#B9C6D0] bg-[#D6DADB]/70 px-6 py-16 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#A7BDD3] text-[#526F85]">
+                <Search size={27} />
               </div>
-            )}
 
-          {isLoading && (
-            <CitiesSkeleton />
+              <h3 className="mt-5 font-[var(--font-fredoka)] text-2xl font-semibold">
+                Search for a city
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#667680]">
+                Search for a city above and select an Odisha
+                location from the suggestions.
+              </p>
+            </div>
           )}
+
+          {isLoading && <CitiesSkeleton />}
 
           {!isLoading && error && (
             <div className="rounded-[28px] border border-[#B9C6D0] bg-[#D3C8B8] px-6 py-12 text-center">
@@ -254,8 +195,7 @@ export default function CitiesPage(): React.ReactElement {
               </div>
 
               <h3 className="mt-5 font-[var(--font-fredoka)] text-2xl font-semibold text-[#263640]">
-                City information could not
-                be loaded
+                City information could not be loaded
               </h3>
 
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#667680]">
@@ -267,7 +207,7 @@ export default function CitiesPage(): React.ReactElement {
           {!isLoading &&
             !error &&
             selectedLocation &&
-            filteredCities.length === 0 && (
+            cities.length === 0 && (
               <div className="rounded-[28px] border border-[#B9C6D0] bg-[#D6DADB]/70 px-6 py-16 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#A7BDD3] text-[#526F85]">
                   <MapPin size={24} />
@@ -278,27 +218,19 @@ export default function CitiesPage(): React.ReactElement {
                 </h3>
 
                 <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#667680]">
-                  The location exists, but
-                  CityHop does not have city data
-                  for it yet.
+                  We do not have city information for this
+                  location yet.
                 </p>
               </div>
             )}
 
-          {!isLoading &&
-            !error &&
-            filteredCities.length > 0 && (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredCities.map(
-                  (city) => (
-                    <CityCard
-                      key={city._id}
-                      city={city}
-                    />
-                  ),
-                )}
-              </div>
-            )}
+          {!isLoading && !error && cities.length > 0 && (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {cities.map((city) => (
+                <CityCard key={city._id} city={city} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>
@@ -314,23 +246,23 @@ function CityCard({
 }: CityCardProps): React.ReactElement {
   return (
     <Link
-      href={
-        "/cities/" +
-        encodeURIComponent(city._id)
-      }
+      href={"/cities/" + encodeURIComponent(city._id)}
       className="group block"
     >
       <article className="h-full overflow-hidden rounded-[28px] border border-[#B9C6D0] bg-[#D6DADB]/75 transition duration-300 hover:-translate-y-1 hover:border-[#A7BDD3] hover:bg-[#CBD3D6] hover:shadow-[0_24px_50px_rgba(38,54,64,0.10)]">
-        <div className="relative flex h-48 items-center justify-center overflow-hidden bg-[#A7BDD3]">
+        <div className="relative h-48 overflow-hidden bg-[#A7BDD3]">
           {city.image ? (
-            <img
+            <RemoteImage
               src={city.image}
               alt={city.name}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="h-full w-full"
             />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[#E8ECF3]/70 text-[#526F85]">
-              <Building2 size={34} />
+            <div className="flex h-full items-center justify-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[#E8ECF3]/70 text-[#526F85]">
+                <Building2 size={34} />
+              </div>
             </div>
           )}
 
@@ -381,28 +313,22 @@ function CityCard({
 function CitiesSkeleton(): React.ReactElement {
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {[1, 2, 3, 4, 5, 6].map(
-        (item) => (
-          <div
-            key={item}
-            className="overflow-hidden rounded-[28px] border border-[#B9C6D0] bg-[#D6DADB]/70"
-          >
-            <div className="h-48 animate-pulse bg-[#CBD3D6]" />
+      {Array.from({ length: 6 }, (_, index) => (
+        <div
+          key={index}
+          className="overflow-hidden rounded-[28px] border border-[#B9C6D0] bg-[#D6DADB]/70"
+        >
+          <Skeleton className="h-48 w-full rounded-none" />
 
-            <div className="p-6">
-              <div className="h-7 w-32 animate-pulse rounded-lg bg-[#CBD3D6]" />
-
-              <div className="mt-3 h-4 w-24 animate-pulse rounded bg-[#CBD3D6]" />
-
-              <div className="mt-5 h-4 w-full animate-pulse rounded bg-[#CBD3D6]" />
-
-              <div className="mt-2 h-4 w-4/5 animate-pulse rounded bg-[#CBD3D6]" />
-
-              <div className="mt-6 h-4 w-28 animate-pulse rounded bg-[#CBD3D6]" />
-            </div>
+          <div className="p-6">
+            <Skeleton className="h-7 w-32" />
+            <Skeleton className="mt-3 h-4 w-24" />
+            <Skeleton className="mt-5 h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-4/5" />
+            <Skeleton className="mt-6 h-4 w-28" />
           </div>
-        ),
-      )}
+        </div>
+      ))}
     </div>
   );
 }
