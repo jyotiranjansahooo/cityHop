@@ -36,11 +36,6 @@ export default function RegisterPage(): React.ReactElement {
         return;
       }
 
-      if (user.role === "owner") {
-        router.replace("/owner");
-        return;
-      }
-
       router.replace("/dashboard");
     }
   }, [isLoading, user, router]);

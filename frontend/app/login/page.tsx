@@ -15,22 +15,16 @@ export default function LoginPage(): React.ReactElement {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      if (user.role === "admin") {
-        router.replace("/admin");
-        return;
-      }
-
-      if (user.role === "owner") {
-        router.replace("/owner");
-        return;
-      }
-
-      router.replace("/dashboard");
+useEffect(() => {
+  if (!isLoading && user) {
+    if (user.role === "admin") {
+      router.replace("/admin");
+      return;
     }
-  }, [isLoading, user, router]);
+
+    router.replace("/dashboard");
+  }
+}, [isLoading, user, router]);
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
