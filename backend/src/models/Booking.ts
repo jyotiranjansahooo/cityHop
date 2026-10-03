@@ -67,10 +67,6 @@ const bookingSchema = new Schema(
 
 export type IBooking = InferSchemaType<typeof bookingSchema>;
 
-const Booking = mongoose.model<IBooking>(
-"Booking",
-bookingSchema,
-);
+const Booking = mongoose.model<IBooking>("Booking", bookingSchema);
 
 export default Booking;
-

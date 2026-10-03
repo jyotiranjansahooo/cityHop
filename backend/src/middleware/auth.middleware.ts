@@ -1,4 +1,3 @@
-
 import jwt from "jsonwebtoken";
 import type { NextFunction, Request, Response } from "express";
 import { Types } from "mongoose";
@@ -18,17 +17,12 @@ interface JwtPayload {
   role: string;
 }
 
-const isJwtPayload = (
-  value: string | jwt.JwtPayload,
-): value is JwtPayload => {
+const isJwtPayload = (value: string | jwt.JwtPayload): value is JwtPayload => {
   if (typeof value === "string") {
     return false;
   }
 
-  return (
-    typeof value.userId === "string" &&
-    typeof value.role === "string"
-  );
+  return typeof value.userId === "string" && typeof value.role === "string";
 };
 
 export const protect = async (
@@ -39,10 +33,7 @@ export const protect = async (
   try {
     const authorization = req.headers.authorization;
 
-    if (
-      !authorization ||
-      !authorization.startsWith("Bearer ")
-    ) {
+    if (!authorization || !authorization.startsWith("Bearer ")) {
       res.status(401).json({
         success: false,
         message: "Authentication token is required",
@@ -133,10 +124,7 @@ export const protect = async (
       return;
     }
 
-    logger.error(
-      { error },
-      "Authentication failed",
-    );
+    logger.error({ error }, "Authentication failed");
 
     res.status(500).json({
       success: false,
@@ -146,11 +134,7 @@ export const protect = async (
 };
 
 export const authorize = (...roles: string[]) => {
-  return (
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction,
-  ): void => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -170,4 +154,3 @@ export const authorize = (...roles: string[]) => {
     next();
   };
 };
-
