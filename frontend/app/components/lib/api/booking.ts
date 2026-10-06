@@ -1,10 +1,6 @@
 import { apiRequest } from "../../lib/api";
 
-export type BookingStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "cancelled";
+export type BookingStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 export interface BookingHostel {
   id?: string;
@@ -54,9 +50,7 @@ export interface BookingResponse {
   data: Booking;
 }
 
-export const getMyBookings = (
-  token: string,
-): Promise<MyBookingsResponse> => {
+export const getMyBookings = (token: string): Promise<MyBookingsResponse> => {
   return apiRequest<MyBookingsResponse>("/bookings/my", {
     method: "GET",
     token,
@@ -95,11 +89,8 @@ export const cancelMyBooking = (
   token: string,
   bookingId: string,
 ): Promise<BookingResponse> => {
-  return apiRequest<BookingResponse>(
-    "/bookings/my/" + bookingId + "/cancel",
-    {
-      method: "PATCH",
-      token,
-    },
-  );
+  return apiRequest<BookingResponse>("/bookings/my/" + bookingId + "/cancel", {
+    method: "PATCH",
+    token,
+  });
 };
