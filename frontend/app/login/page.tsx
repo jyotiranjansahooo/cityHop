@@ -65,7 +65,7 @@ useEffect(() => {
   }
 
   return (
-    <main className="min-h-screen bg-[#E8ECF3] text-[#263640]">
+    <main className="min-h-screen mt-8 bg-[#E8ECF3] text-[#263640]">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-5 py-10 sm:px-8 lg:px-12">
         <section className="grid w-full max-w-5xl overflow-hidden rounded-[32px] border border-[#CBD3D6] bg-[#D6DADB] shadow-[0_24px_70px_rgba(82,111,133,0.16)] lg:grid-cols-[0.9fr_1.1fr]">
           {/* Left visual section */}

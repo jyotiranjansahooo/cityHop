@@ -42,12 +42,14 @@ export interface Hostel {
 
 export interface HostelResponse {
   success: boolean;
-  hostels: Hostel[];
+  data: Hostel[];
   pagination?: {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
   };
 }
 
@@ -101,8 +103,17 @@ export const getHostels = async (
 
   const query = searchParams.toString();
 
-  return apiRequest<HostelResponse>(
-    query ? "/hostels?" + query : "/hostels",
+  return apiRequest<HostelResponse>(query ? "/hostels?" + query : "/hostels");
+};
+export interface HostelDetailsResponse {
+  success: boolean;
+  data: Hostel;
+}
+
+export const getHostelById = async (
+  hostelId: string,
+): Promise<HostelDetailsResponse> => {
+  return apiRequest<HostelDetailsResponse>(
+    "/hostels/" + hostelId,
   );
 };
-
