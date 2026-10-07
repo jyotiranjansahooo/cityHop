@@ -1,6 +1,6 @@
 import mongoose, { Schema, model } from "mongoose";
 
-export type UserRole = "user" | "owner" | "admin";
+export type UserRole = "user" | "admin";
 
 export interface IUser {
   name: string;
@@ -39,7 +39,7 @@ const userSchema = new Schema<IUser>(
 
     role: {
       type: String,
-      enum: ["user", "owner", "admin"],
+      enum: ["user", "admin"],
       default: "user",
     },
 
@@ -50,7 +50,7 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const User =

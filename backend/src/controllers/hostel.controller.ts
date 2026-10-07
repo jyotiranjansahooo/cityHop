@@ -5,7 +5,7 @@ import type { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
 
 import User from "../models/User.js";
 import type { AuthRequest } from "../middleware/auth.middleware.js";
-import Hostel, { type IHostel, type HostelType } from "../models/Hostel.js";
+import Hostel, { type HostelType } from "../models/Hostel.js";
 import City from "../models/City.js";
 import Area from "../models/Area.js";
 import cloudinary from "../config/cloudinary.js";
@@ -186,10 +186,10 @@ export const createHostel = async (
 
     const owner = await User.findById(req.user.id).select("_id role isActive");
 
-    if (!owner || owner.role !== "owner") {
+    if (!owner || (owner.role !== "user" && owner.role !== "admin")) {
       res.status(403).json({
         success: false,
-        message: "Only owners can create hostels",
+        message: "You do not have permission to manage hostels",
       });
       return;
     }
@@ -197,7 +197,7 @@ export const createHostel = async (
     if (!owner.isActive) {
       res.status(403).json({
         success: false,
-        message: "Your owner account is inactive",
+        message: "Your account is inactive",
       });
       return;
     }
@@ -530,6 +530,7 @@ export const getHostels = async (
         .skip(skip)
         .limit(limitNumber)
         .lean(),
+
       Hostel.countDocuments(filters),
     ]);
 
@@ -646,10 +647,10 @@ export const updateHostel = async (
 
     const owner = await User.findById(req.user.id).select("_id role isActive");
 
-    if (!owner || owner.role !== "owner") {
+    if (!owner || (owner.role !== "user" && owner.role !== "admin")) {
       res.status(403).json({
         success: false,
-        message: "Only owners can modify hostels",
+        message: "You do not have permission to manage hostels",
       });
       return;
     }
@@ -657,7 +658,7 @@ export const updateHostel = async (
     if (!owner.isActive) {
       res.status(403).json({
         success: false,
-        message: "Your owner account is inactive",
+        message: "Your account is inactive",
       });
       return;
     }
@@ -894,7 +895,10 @@ export const deleteHostelImage = async (
     }
 
     const { id } = req.params;
-    const { publicId } = req.body as { publicId?: unknown };
+
+    const { publicId } = req.body as {
+      publicId?: unknown;
+    };
 
     if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
       res.status(400).json({
@@ -923,6 +927,7 @@ export const deleteHostelImage = async (
     }
 
     const isOwner = hostel.owner.toString() === req.user.id;
+
     const isAdmin = req.user.role === "admin";
 
     if (!isOwner && !isAdmin) {
@@ -938,10 +943,10 @@ export const deleteHostelImage = async (
         "_id role isActive",
       );
 
-      if (!owner || owner.role !== "owner") {
+      if (!owner) {
         res.status(403).json({
           success: false,
-          message: "Only owners can modify hostel images",
+          message: "User account not found",
         });
         return;
       }
@@ -949,7 +954,7 @@ export const deleteHostelImage = async (
       if (!owner.isActive) {
         res.status(403).json({
           success: false,
-          message: "Your owner account is inactive",
+          message: "Your account is inactive",
         });
         return;
       }
@@ -1042,10 +1047,10 @@ export const deleteHostel = async (
 
     const owner = await User.findById(req.user.id).select("_id role isActive");
 
-    if (!owner || owner.role !== "owner") {
+    if (!owner || (owner.role !== "user" && owner.role !== "admin")) {
       res.status(403).json({
         success: false,
-        message: "Only owners can deactivate hostels",
+        message: "You do not have permission to manage hostels",
       });
       return;
     }
@@ -1053,7 +1058,7 @@ export const deleteHostel = async (
     if (!owner.isActive) {
       res.status(403).json({
         success: false,
-        message: "Your owner account is inactive",
+        message: "Your account is inactive",
       });
       return;
     }

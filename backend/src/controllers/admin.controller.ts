@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import type { Response } from "express";
 
 import type { AuthRequest } from "../middleware/auth.middleware.js";
+
 import City from "../models/City.js";
 import User from "../models/User.js";
 import Hostel from "../models/Hostel.js";
@@ -24,31 +25,26 @@ export const getAdminDashboard = async (
 
     const [
       totalUsers,
-      totalOwners,
+      totalHostelOwners,
       totalNormalUsers,
       totalAdmins,
       activeUsers,
       inactiveUsers,
-
       totalHostels,
       activeHostels,
       inactiveHostels,
-
       totalBookings,
       pendingBookings,
       approvedBookings,
       rejectedBookings,
       cancelledBookings,
-
       recentUsers,
       recentHostels,
       recentBookings,
     ] = await Promise.all([
       User.countDocuments(),
 
-      User.countDocuments({
-        role: "owner",
-      }),
+      Hostel.distinct("owner").then((owners) => owners.length),
 
       User.countDocuments({
         role: "user",
@@ -122,23 +118,20 @@ export const getAdminDashboard = async (
 
     res.status(200).json({
       success: true,
-
       dashboard: {
         users: {
           total: totalUsers,
           normalUsers: totalNormalUsers,
-          owners: totalOwners,
+          owners: totalHostelOwners,
           admins: totalAdmins,
           active: activeUsers,
           inactive: inactiveUsers,
         },
-
         hostels: {
           total: totalHostels,
           active: activeHostels,
           inactive: inactiveHostels,
         },
-
         bookings: {
           total: totalBookings,
           pending: pendingBookings,
@@ -146,7 +139,6 @@ export const getAdminDashboard = async (
           rejected: rejectedBookings,
           cancelled: cancelledBookings,
         },
-
         recentUsers,
         recentHostels,
         recentBookings,
@@ -161,6 +153,7 @@ export const getAdminDashboard = async (
     });
   }
 };
+
 export const getAllUsers = async (
   req: AuthRequest,
   res: Response,
@@ -210,7 +203,7 @@ export const getAllUsers = async (
       ];
     }
 
-    if (role === "user" || role === "owner" || role === "admin") {
+    if (role === "user" || role === "admin") {
       filter.role = role;
     }
 
@@ -236,16 +229,13 @@ export const getAllUsers = async (
 
     res.status(200).json({
       success: true,
-
       count: users.length,
-
       pagination: {
         page,
         limit,
         totalUsers,
         totalPages: Math.ceil(totalUsers / limit),
       },
-
       users,
     });
   } catch (error) {
@@ -257,6 +247,7 @@ export const getAllUsers = async (
     });
   }
 };
+
 export const updateUserStatus = async (
   req: AuthRequest,
   res: Response,
@@ -265,7 +256,15 @@ export const updateUserStatus = async (
     const { id } = req.params;
     const { isActive } = req.body;
 
-    if (typeof id !== "string" || id.length === 0) {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
       res.status(400).json({
         success: false,
         message: "Invalid user ID",
@@ -291,7 +290,7 @@ export const updateUserStatus = async (
       return;
     }
 
-    if (user._id.toString() === req.user?.id) {
+    if (user._id.toString() === req.user.id) {
       res.status(400).json({
         success: false,
         message: "You cannot change your own account status",
@@ -306,7 +305,7 @@ export const updateUserStatus = async (
     logger.info(
       {
         userId: user._id.toString(),
-        adminId: req.user?.id,
+        adminId: req.user.id,
         isActive,
       },
       "Admin updated user status",
@@ -317,7 +316,6 @@ export const updateUserStatus = async (
       message: isActive
         ? "User activated successfully"
         : "User deactivated successfully",
-
       user: {
         id: user._id,
         name: user.name,
@@ -335,6 +333,7 @@ export const updateUserStatus = async (
     });
   }
 };
+
 export const getAllHostels = async (
   req: AuthRequest,
   res: Response,
@@ -381,14 +380,38 @@ export const getAllHostels = async (
     }
 
     if (city) {
+      if (!Types.ObjectId.isValid(city)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid city ID",
+        });
+        return;
+      }
+
       filter.city = city;
     }
 
     if (area) {
+      if (!Types.ObjectId.isValid(area)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid area ID",
+        });
+        return;
+      }
+
       filter.area = area;
     }
 
     if (type) {
+      if (!["boys", "girls", "co-living"].includes(type)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid hostel type",
+        });
+        return;
+      }
+
       filter.type = type;
     }
 
@@ -416,16 +439,13 @@ export const getAllHostels = async (
 
     res.status(200).json({
       success: true,
-
       count: hostels.length,
-
       pagination: {
         page,
         limit,
         totalHostels,
         totalPages: Math.ceil(totalHostels / limit),
       },
-
       hostels,
     });
   } catch (error) {
@@ -437,6 +457,7 @@ export const getAllHostels = async (
     });
   }
 };
+
 export const updateHostelStatus = async (
   req: AuthRequest,
   res: Response,
@@ -445,7 +466,15 @@ export const updateHostelStatus = async (
     const { id } = req.params;
     const { isActive } = req.body;
 
-    if (typeof id !== "string" || id.length === 0) {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
       res.status(400).json({
         success: false,
         message: "Invalid hostel ID",
@@ -478,7 +507,7 @@ export const updateHostelStatus = async (
     logger.info(
       {
         hostelId: hostel._id.toString(),
-        adminId: req.user?.id,
+        adminId: req.user.id,
         isActive,
       },
       "Admin updated hostel status",
@@ -489,7 +518,6 @@ export const updateHostelStatus = async (
       message: isActive
         ? "Hostel activated successfully"
         : "Hostel deactivated successfully",
-
       hostel: {
         id: hostel._id,
         name: hostel.name,
@@ -505,6 +533,7 @@ export const updateHostelStatus = async (
     });
   }
 };
+
 export const getAllBookings = async (
   req: AuthRequest,
   res: Response,
@@ -526,39 +555,37 @@ export const getAllBookings = async (
 
     const skip = (page - 1) * limit;
 
-    const search =
-      typeof req.query.search === "string" ? req.query.search.trim() : "";
-
     const status =
       typeof req.query.status === "string" ? req.query.status : undefined;
 
+    const validStatuses = [
+      "pending",
+      "approved",
+      "rejected",
+      "cancelled",
+    ] as const;
+
+    type BookingStatus = (typeof validStatuses)[number];
+
     const filter: Record<string, unknown> = {};
 
-    if (
-      status === "pending" ||
-      status === "approved" ||
-      status === "rejected" ||
-      status === "cancelled"
-    ) {
-      filter.status = status;
-    }
+    if (status) {
+      if (!validStatuses.includes(status as BookingStatus)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid booking status",
+        });
+        return;
+      }
 
-    if (search) {
-      filter.$or = [
-        {
-          _id: {
-            $regex: search,
-            $options: "i",
-          },
-        },
-      ];
+      filter.status = status as BookingStatus;
     }
 
     const [bookings, totalBookings] = await Promise.all([
       Booking.find(filter)
         .populate("user", "name email")
         .populate("owner", "name email")
-        .populate("hostel", "name images address monthlyRent")
+        .populate("hostel", "name images city area monthlyRent")
         .sort({
           createdAt: -1,
         })
@@ -570,16 +597,13 @@ export const getAllBookings = async (
 
     res.status(200).json({
       success: true,
-
       count: bookings.length,
-
       pagination: {
         page,
         limit,
         totalBookings,
         totalPages: Math.ceil(totalBookings / limit),
       },
-
       bookings,
     });
   } catch (error) {
@@ -591,527 +615,22 @@ export const getAllBookings = async (
     });
   }
 };
-export const getBookingById = async (
+
+export const updateBookingStatus = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const { status, rejectionReason } = req.body;
 
-    if (typeof id !== "string" || id.trim().length === 0) {
-      res.status(400).json({
+    if (!req.user) {
+      res.status(401).json({
         success: false,
-        message: "Invalid booking ID",
+        message: "Unauthorized",
       });
       return;
     }
-
-    const booking = await Booking.findById(id)
-      .populate("user", "name email role isActive")
-      .populate("owner", "name email role isActive")
-      .populate({
-        path: "hostel",
-        populate: [
-          {
-            path: "city",
-            select: "name",
-          },
-          {
-            path: "area",
-            select: "name",
-          },
-        ],
-      });
-
-    if (!booking) {
-      res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      booking,
-    });
-  } catch (error) {
-    logger.error({ error }, "Failed to get booking details");
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-export const getUserById = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { id } = req.params;
-
-    if (typeof id !== "string" || id.trim().length === 0) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
-      return;
-    }
-
-    const user = await User.findById(id).select("-password");
-
-    if (!user) {
-      res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-      return;
-    }
-
-    const [hostelCount, bookingCount] = await Promise.all([
-      user.role === "owner"
-        ? Hostel.countDocuments({
-            owner: user._id,
-          })
-        : Promise.resolve(0),
-
-      user.role === "user"
-        ? Booking.countDocuments({
-            user: user._id,
-          })
-        : Promise.resolve(0),
-    ]);
-
-    res.status(200).json({
-      success: true,
-
-      user,
-
-      statistics: {
-        totalHostels: hostelCount,
-        totalBookings: bookingCount,
-      },
-    });
-  } catch (error) {
-    logger.error({ error }, "Failed to get user details");
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-export const getHostelById = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { id } = req.params;
-
-    if (typeof id !== "string" || id.trim().length === 0) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid hostel ID",
-      });
-      return;
-    }
-
-    const hostel = await Hostel.findById(id)
-      .populate("owner", "name email role isActive")
-      .populate("city", "name isActive")
-      .populate("area", "name isActive");
-
-    if (!hostel) {
-      res.status(404).json({
-        success: false,
-        message: "Hostel not found",
-      });
-      return;
-    }
-
-    const bookingStats = await Booking.aggregate([
-      {
-        $match: {
-          hostel: hostel._id,
-        },
-      },
-      {
-        $group: {
-          _id: "$status",
-          count: {
-            $sum: 1,
-          },
-        },
-      },
-    ]);
-
-    const bookings = {
-      total: 0,
-      pending: 0,
-      approved: 0,
-      rejected: 0,
-      cancelled: 0,
-    };
-
-    for (const item of bookingStats) {
-      const status = item._id as
-        | "pending"
-        | "approved"
-        | "rejected"
-        | "cancelled";
-
-      const count = item.count as number;
-
-      bookings.total += count;
-
-      if (status === "pending") {
-        bookings.pending = count;
-      }
-
-      if (status === "approved") {
-        bookings.approved = count;
-      }
-
-      if (status === "rejected") {
-        bookings.rejected = count;
-      }
-
-      if (status === "cancelled") {
-        bookings.cancelled = count;
-      }
-    }
-
-    res.status(200).json({
-      success: true,
-
-      hostel,
-
-      statistics: {
-        bookings,
-      },
-    });
-  } catch (error) {
-    logger.error({ error }, "Failed to get hostel details");
-
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
-
-export const createCity = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { name } = req.body;
-
-    if (!name || typeof name !== "string") {
-      res.status(400).json({
-        success: false,
-        message: "City name is required",
-      });
-      return;
-    }
-
-    const cityName = name.trim();
-
-    if (!cityName) {
-      res.status(400).json({
-        success: false,
-        message: "City name cannot be empty",
-      });
-      return;
-    }
-
-    const existingCity = await City.findOne({
-      name: {
-        $regex: "^" + cityName + "$",
-        $options: "i",
-      },
-    });
-
-    if (existingCity) {
-      res.status(409).json({
-        success: false,
-        message: "City already exists",
-      });
-      return;
-    }
-
-    const city = await City.create({
-      name: cityName,
-      isActive: true,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "City created successfully",
-      city,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to create city",
-      error,
-    });
-  }
-};
-
-export const getAllCities = async (
-  _req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const cities = await City.find().sort({ name: 1 }).lean();
-
-    res.status(200).json({
-      success: true,
-      count: cities.length,
-      cities,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch cities",
-      error,
-    });
-  }
-};
-
-export const updateCityStatus = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { isActive } = req.body;
-
-    if (typeof isActive !== "boolean") {
-      res.status(400).json({
-        success: false,
-        message: "isActive must be a boolean",
-      });
-      return;
-    }
-
-    const city = await City.findById(id);
-
-    if (!city) {
-      res.status(404).json({
-        success: false,
-        message: "City not found",
-      });
-      return;
-    }
-
-    city.isActive = isActive;
-
-    await city.save();
-
-    res.status(200).json({
-      success: true,
-      message: isActive
-        ? "City activated successfully"
-        : "City deactivated successfully",
-      city,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to update city status",
-      error,
-    });
-  }
-};
-export const createArea = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { name, cityId } = req.body;
-
-    if (!name || typeof name !== "string") {
-      res.status(400).json({
-        success: false,
-        message: "Area name is required",
-      });
-      return;
-    }
-
-    if (!cityId || typeof cityId !== "string") {
-      res.status(400).json({
-        success: false,
-        message: "City ID is required",
-      });
-      return;
-    }
-
-    const areaName = name.trim();
-
-    if (!areaName) {
-      res.status(400).json({
-        success: false,
-        message: "Area name cannot be empty",
-      });
-      return;
-    }
-
-    const city = await City.findById(cityId);
-
-    if (!city) {
-      res.status(404).json({
-        success: false,
-        message: "City not found",
-      });
-      return;
-    }
-
-    const existingArea = await Area.findOne({
-      name: {
-        $regex: "^" + areaName + "$",
-        $options: "i",
-      },
-      city: cityId,
-    });
-
-    if (existingArea) {
-      res.status(409).json({
-        success: false,
-        message: "Area already exists in this city",
-      });
-      return;
-    }
-
-    const area = await Area.create({
-      name: areaName,
-      city: cityId,
-      isActive: true,
-    });
-
-    const populatedArea = await Area.findById(area._id)
-      .populate("city", "name")
-      .lean();
-
-    res.status(201).json({
-      success: true,
-      message: "Area created successfully",
-      area: populatedArea,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to create area",
-      error,
-    });
-  }
-};
-
-export const getAllAreas = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { cityId, isActive } = req.query;
-
-    interface AreaFilter {
-      city?: string;
-      isActive?: boolean;
-    }
-
-    const filter: AreaFilter = {};
-
-    if (typeof cityId === "string" && cityId.trim()) {
-      filter.city = cityId;
-    }
-
-    if (typeof isActive === "string") {
-      if (isActive === "true") {
-        filter.isActive = true;
-      }
-
-      if (isActive === "false") {
-        filter.isActive = false;
-      }
-    }
-
-    const areas = await Area.find(filter)
-      .populate("city", "name")
-      .sort({ name: 1 })
-      .lean();
-
-    res.status(200).json({
-      success: true,
-      count: areas.length,
-      areas,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch areas",
-      error,
-    });
-  }
-};
-
-export const updateAreaStatus = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { isActive } = req.body;
-
-    if (typeof isActive !== "boolean") {
-      res.status(400).json({
-        success: false,
-        message: "isActive must be a boolean",
-      });
-      return;
-    }
-
-    const area = await Area.findById(id);
-
-    if (!area) {
-      res.status(404).json({
-        success: false,
-        message: "Area not found",
-      });
-      return;
-    }
-
-    area.isActive = isActive;
-
-    await area.save();
-
-    const populatedArea = await Area.findById(area._id)
-      .populate("city", "name")
-      .lean();
-
-    res.status(200).json({
-      success: true,
-      message: isActive
-        ? "Area activated successfully"
-        : "Area deactivated successfully",
-      area: populatedArea,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to update area status",
-      error,
-    });
-  }
-};
-
-export const approveAdminBooking = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { id } = req.params;
 
     if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
       res.status(400).json({
@@ -1121,84 +640,33 @@ export const approveAdminBooking = async (
       return;
     }
 
-    const booking = await Booking.findById(id);
+    const validStatuses = [
+      "pending",
+      "approved",
+      "rejected",
+      "cancelled",
+    ] as const;
 
-    if (!booking) {
-      res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-      return;
-    }
+    type BookingStatus = (typeof validStatuses)[number];
 
-    if (booking.status !== "pending") {
+    if (
+      typeof status !== "string" ||
+      !validStatuses.includes(status as BookingStatus)
+    ) {
       res.status(400).json({
         success: false,
-        message: "Only pending bookings can be approved",
+        message: "Invalid booking status",
       });
       return;
     }
 
-    const conflictingBooking = await Booking.findOne({
-      _id: {
-        $ne: booking._id,
-      },
-      hostel: booking.hostel,
-      status: "approved",
-      checkInDate: {
-        $lt: booking.checkOutDate,
-      },
-      checkOutDate: {
-        $gt: booking.checkInDate,
-      },
-    });
+    const bookingStatus = status as BookingStatus;
 
-    if (conflictingBooking) {
-      res.status(409).json({
-        success: false,
-        message: "This booking conflicts with an existing approved booking",
-      });
-      return;
-    }
-
-    booking.status = "approved";
-
-    await booking.save();
-
-    const updatedBooking = await Booking.findById(booking._id)
-      .populate("user", "name email")
-      .populate("owner", "name email")
-      .populate("hostel", "name")
-      .lean();
-
-    res.status(200).json({
-      success: true,
-      message: "Booking approved successfully",
-      booking: updatedBooking,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to approve booking",
-      error,
-    });
-  }
-};
-
-export const rejectAdminBooking = async (
-  req: AuthRequest,
-  res: Response,
-): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { rejectionReason } = req.body;
-
-    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
-      res.status(400).json({ success: false, message: "Invalid booking ID" });
-      return;
-    }
-
-    if (rejectionReason !== undefined && typeof rejectionReason !== "string") {
+    if (
+      bookingStatus === "rejected" &&
+      rejectionReason !== undefined &&
+      typeof rejectionReason !== "string"
+    ) {
       res.status(400).json({
         success: false,
         message: "Rejection reason must be a string",
@@ -1216,200 +684,579 @@ export const rejectAdminBooking = async (
       return;
     }
 
-    if (booking.status !== "pending") {
-      res.status(400).json({
-        success: false,
-        message: "Only pending bookings can be rejected",
-      });
-      return;
-    }
+    booking.status = bookingStatus;
 
-    booking.status = "rejected";
-
-    if (typeof rejectionReason === "string") {
-      const reason = rejectionReason.trim();
-
-      if (reason) {
-        booking.rejectionReason = reason;
-      }
+    if (bookingStatus === "rejected") {
+      booking.rejectionReason =
+        typeof rejectionReason === "string" ? rejectionReason.trim() : null;
+    } else {
+      booking.rejectionReason = null;
     }
 
     await booking.save();
 
+    logger.info(
+      {
+        bookingId: booking._id.toString(),
+        adminId: req.user.id,
+        status: bookingStatus,
+      },
+      "Admin updated booking status",
+    );
+
     const updatedBooking = await Booking.findById(booking._id)
       .populate("user", "name email")
       .populate("owner", "name email")
-      .populate("hostel", "name")
-      .lean();
+      .populate("hostel", "name images city area monthlyRent");
 
     res.status(200).json({
       success: true,
-      message: "Booking rejected successfully",
+      message: "Booking status updated successfully",
       booking: updatedBooking,
     });
   } catch (error) {
+    logger.error({ error }, "Failed to update booking status");
+
     res.status(500).json({
       success: false,
-      message: "Failed to reject booking",
-      error,
+      message: "Internal server error",
     });
   }
 };
 
-export const cancelAdminBooking = async (
+export const getAllCities = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const { cancellationReason } = req.body;
+    const cities = await City.find()
+      .sort({
+        name: 1,
+      })
+      .lean();
 
-    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
-      res.status(400).json({ success: false, message: "Invalid booking ID" });
-      return;
-    }
+    res.status(200).json({
+      success: true,
+      count: cities.length,
+      cities,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to get all cities");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const createCity = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { name, state, country } = req.body;
 
     if (
-      cancellationReason !== undefined &&
-      typeof cancellationReason !== "string"
+      typeof name !== "string" ||
+      typeof state !== "string" ||
+      typeof country !== "string"
     ) {
       res.status(400).json({
         success: false,
-        message: "Cancellation reason must be a string",
+        message: "Name, state, and country are required",
       });
       return;
     }
 
-    const booking = await Booking.findById(id);
+    const trimmedName = name.trim();
+    const trimmedState = state.trim();
+    const trimmedCountry = country.trim();
 
-    if (!booking) {
-      res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-      return;
-    }
-
-    if (booking.status !== "pending" && booking.status !== "approved") {
+    if (!trimmedName || !trimmedState || !trimmedCountry) {
       res.status(400).json({
         success: false,
-        message: "Only pending or approved bookings can be cancelled",
+        message: "Name, state, and country are required",
       });
       return;
     }
 
-    booking.status = "cancelled";
+    const existingCity = await City.findOne({
+      name: trimmedName,
+      state: trimmedState,
+      country: trimmedCountry,
+    });
 
-    if (typeof cancellationReason === "string") {
-      const reason = cancellationReason.trim();
-
-      if (reason) {
-        booking.cancellationReason = reason;
-      }
+    if (existingCity) {
+      res.status(409).json({
+        success: false,
+        message: "City already exists",
+      });
+      return;
     }
 
-    await booking.save();
+    const city = await City.create({
+      name: trimmedName,
+      state: trimmedState,
+      country: trimmedCountry,
+    });
 
-    const updatedBooking = await Booking.findById(booking._id)
-      .populate("user", "name email")
-      .populate("owner", "name email")
-      .populate("hostel", "name")
-      .lean();
-
-    res.status(200).json({
+    res.status(201).json({
       success: true,
-      message: "Booking cancelled successfully",
-      booking: updatedBooking,
+      message: "City created successfully",
+      city,
     });
   } catch (error) {
+    logger.error({ error }, "Failed to create city");
+
     res.status(500).json({
       success: false,
-      message: "Failed to cancel booking",
-      error,
+      message: "Internal server error",
     });
   }
 };
-export const updateOwnerStatus = async (
+
+export const updateCity = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { isActive } = req.body;
+    const { name, state, country, isActive } = req.body;
 
     if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
       res.status(400).json({
         success: false,
-        message: "Invalid owner ID",
+        message: "Invalid city ID",
       });
       return;
     }
 
-    if (typeof isActive !== "boolean") {
-      res.status(400).json({
-        success: false,
-        message: "isActive must be a boolean",
-      });
-      return;
-    }
+    const city = await City.findById(id);
 
-    const owner = await User.findById(id);
-
-    if (!owner) {
+    if (!city) {
       res.status(404).json({
         success: false,
-        message: "Owner not found",
+        message: "City not found",
       });
       return;
     }
 
-    if (owner.role !== "owner") {
-      res.status(400).json({
-        success: false,
-        message: "The selected user is not an owner",
-      });
-      return;
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid city name",
+        });
+        return;
+      }
+
+      city.name = name.trim();
     }
 
-    owner.isActive = isActive;
+    if (state !== undefined) {
+      if (typeof state !== "string" || !state.trim()) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid state",
+        });
+        return;
+      }
 
-    await owner.save();
-
-    let affectedHostels = 0;
-
-    if (!isActive) {
-      const hostelUpdateResult = await Hostel.updateMany(
-        {
-          owner: owner._id,
-          isActive: true,
-        },
-        {
-          $set: {
-            isActive: false,
-          },
-        },
-      );
-
-      affectedHostels = hostelUpdateResult.modifiedCount;
+      city.state = state.trim();
     }
 
-    const updatedOwner = await User.findById(owner._id)
-      .select("-password")
+    if (country !== undefined) {
+      if (typeof country !== "string" || !country.trim()) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid country",
+        });
+        return;
+      }
+
+      city.country = country.trim();
+    }
+
+    if (isActive !== undefined) {
+      if (typeof isActive !== "boolean") {
+        res.status(400).json({
+          success: false,
+          message: "isActive must be true or false",
+        });
+        return;
+      }
+
+      city.isActive = isActive;
+    }
+
+    await city.save();
+
+    res.status(200).json({
+      success: true,
+      message: "City updated successfully",
+      city,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to update city");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getAllAreas = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const cityId =
+      typeof req.query.city === "string" ? req.query.city : undefined;
+
+    const filter: Record<string, unknown> = {};
+
+    if (cityId) {
+      if (!Types.ObjectId.isValid(cityId)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid city ID",
+        });
+        return;
+      }
+
+      filter.city = cityId;
+    }
+
+    const areas = await Area.find(filter)
+      .populate("city", "name")
+      .sort({
+        name: 1,
+      })
       .lean();
 
     res.status(200).json({
       success: true,
-      message: isActive
-        ? "Owner activated successfully"
-        : "Owner deactivated successfully",
-      owner: updatedOwner,
-      affectedHostels,
+      count: areas.length,
+      areas,
     });
   } catch (error) {
+    logger.error({ error }, "Failed to get all areas");
+
     res.status(500).json({
       success: false,
-      message: "Failed to update owner status",
-      error,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const createArea = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { name, city, description, latitude, longitude, isActive } = req.body;
+
+    if (typeof name !== "string" || typeof city !== "string") {
+      res.status(400).json({
+        success: false,
+        message: "Name and city are required",
+      });
+      return;
+    }
+
+    if (!Types.ObjectId.isValid(city)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid city ID",
+      });
+      return;
+    }
+
+    const cityExists = await City.findById(city);
+
+    if (!cityExists) {
+      res.status(404).json({
+        success: false,
+        message: "City not found",
+      });
+      return;
+    }
+
+    const existingArea = await Area.findOne({
+      name: name.trim(),
+      city,
+    });
+
+    if (existingArea) {
+      res.status(409).json({
+        success: false,
+        message: "Area already exists in this city",
+      });
+      return;
+    }
+
+    const areaData: {
+      name: string;
+      city: Types.ObjectId;
+      description?: string;
+      latitude?: number;
+      longitude?: number;
+      isActive?: boolean;
+    } = {
+      name: name.trim(),
+      city: new Types.ObjectId(city),
+    };
+
+    if (description !== undefined) {
+      if (typeof description !== "string") {
+        res.status(400).json({
+          success: false,
+          message: "Description must be a string",
+        });
+        return;
+      }
+
+      areaData.description = description.trim();
+    }
+
+    if (latitude !== undefined) {
+      const latitudeNumber = Number(latitude);
+
+      if (!Number.isFinite(latitudeNumber)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid latitude",
+        });
+        return;
+      }
+
+      areaData.latitude = latitudeNumber;
+    }
+
+    if (longitude !== undefined) {
+      const longitudeNumber = Number(longitude);
+
+      if (!Number.isFinite(longitudeNumber)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid longitude",
+        });
+        return;
+      }
+
+      areaData.longitude = longitudeNumber;
+    }
+
+    if (isActive !== undefined) {
+      if (typeof isActive !== "boolean") {
+        res.status(400).json({
+          success: false,
+          message: "isActive must be true or false",
+        });
+        return;
+      }
+
+      areaData.isActive = isActive;
+    }
+
+    const area = await Area.create(areaData);
+
+    res.status(201).json({
+      success: true,
+      message: "Area created successfully",
+      area,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to create area");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const updateArea = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid area ID",
+      });
+      return;
+    }
+
+    const area = await Area.findById(id);
+
+    if (!area) {
+      res.status(404).json({
+        success: false,
+        message: "Area not found",
+      });
+      return;
+    }
+
+    const { name, city, description, latitude, longitude, isActive } = req.body;
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid area name",
+        });
+        return;
+      }
+
+      area.name = name.trim();
+    }
+
+    if (city !== undefined) {
+      if (typeof city !== "string" || !Types.ObjectId.isValid(city)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid city ID",
+        });
+        return;
+      }
+
+      const cityExists = await City.findById(city);
+
+      if (!cityExists) {
+        res.status(404).json({
+          success: false,
+          message: "City not found",
+        });
+        return;
+      }
+
+      area.city = new Types.ObjectId(city);
+    }
+
+    if (description !== undefined) {
+      if (typeof description !== "string") {
+        res.status(400).json({
+          success: false,
+          message: "Description must be a string",
+        });
+        return;
+      }
+
+      area.description = description.trim();
+    }
+
+    if (latitude !== undefined) {
+      const latitudeNumber = Number(latitude);
+
+      if (!Number.isFinite(latitudeNumber)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid latitude",
+        });
+        return;
+      }
+
+      area.latitude = latitudeNumber;
+    }
+
+    if (longitude !== undefined) {
+      const longitudeNumber = Number(longitude);
+
+      if (!Number.isFinite(longitudeNumber)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid longitude",
+        });
+        return;
+      }
+
+      area.longitude = longitudeNumber;
+    }
+
+    if (isActive !== undefined) {
+      if (typeof isActive !== "boolean") {
+        res.status(400).json({
+          success: false,
+          message: "isActive must be true or false",
+        });
+        return;
+      }
+
+      area.isActive = isActive;
+    }
+
+    await area.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Area updated successfully",
+      area,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to update area");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const deleteArea = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid area ID",
+      });
+      return;
+    }
+
+    const area = await Area.findById(id);
+
+    if (!area) {
+      res.status(404).json({
+        success: false,
+        message: "Area not found",
+      });
+      return;
+    }
+
+    const hostelCount = await Hostel.countDocuments({
+      area: area._id,
+    });
+
+    if (hostelCount > 0) {
+      res.status(400).json({
+        success: false,
+        message: "Cannot delete area while hostels are assigned to it",
+      });
+      return;
+    }
+
+    await area.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Area deleted successfully",
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to delete area");
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
   }
 };
