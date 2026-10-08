@@ -1,93 +1,91 @@
 import { Router } from "express";
 
 import {
-  createCity,
-  getAllCities,
-  updateCityStatus,
   getAdminDashboard,
   getAllUsers,
-  getUserById,
   updateUserStatus,
   getAllHostels,
-  getHostelById,
   updateHostelStatus,
   getAllBookings,
-  getBookingById,
-  createArea,
+  updateBookingStatus,
+  getAllCities,
+  createCity,
+  updateCity,
   getAllAreas,
-  updateAreaStatus,
-  approveAdminBooking,
-  rejectAdminBooking,
-  cancelAdminBooking,
-  updateOwnerStatus,
+  createArea,
+  updateArea,
+  deleteArea,
 } from "../controllers/admin.controller.js";
 
 import { protect, authorize } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
+/* =========================
+   ADMIN DASHBOARD
+========================= */
+
 router.get("/dashboard", protect, authorize("admin"), getAdminDashboard);
+
+/* =========================
+   USERS
+========================= */
+
 router.get("/users", protect, authorize("admin"), getAllUsers);
+
 router.patch(
   "/users/:id/status",
   protect,
   authorize("admin"),
   updateUserStatus,
 );
+
+/* =========================
+   HOSTELS
+========================= */
+
 router.get("/hostels", protect, authorize("admin"), getAllHostels);
+
 router.patch(
   "/hostels/:id/status",
   protect,
   authorize("admin"),
   updateHostelStatus,
 );
-router.get("/bookings", protect, authorize("admin"), getAllBookings);
-router.get("/bookings/", protect, authorize("admin"), getBookingById);
-router.get("/users/:id", protect, authorize("admin"), getUserById);
-router.get("/hostels/:id", protect, authorize("admin"), getHostelById);
 
-router.post("/cities", protect, authorize("admin"), createCity);
-router.get("/cities", protect, authorize("admin"), getAllCities);
+/* =========================
+   BOOKINGS
+========================= */
+
+router.get("/bookings", protect, authorize("admin"), getAllBookings);
+
 router.patch(
-  "/cities/:id/status",
+  "/bookings/:id/status",
   protect,
   authorize("admin"),
-  updateCityStatus,
+  updateBookingStatus,
 );
 
-router.post("/areas", protect, authorize("admin"), createArea);
+/* =========================
+   CITIES
+========================= */
+
+router.get("/cities", protect, authorize("admin"), getAllCities);
+
+router.post("/cities", protect, authorize("admin"), createCity);
+
+router.patch("/cities/:id", protect, authorize("admin"), updateCity);
+
+/* =========================
+   AREAS
+========================= */
 
 router.get("/areas", protect, authorize("admin"), getAllAreas);
 
-router.patch(
-  "/areas/:id/status",
-  protect,
-  authorize("admin"),
-  updateAreaStatus,
-);
-router.patch(
-  "/bookings/:id/approve",
-  protect,
-  authorize("admin"),
-  approveAdminBooking,
-);
-router.patch(
-  "/bookings/:id/reject",
-  protect,
-  authorize("admin"),
-  rejectAdminBooking,
-);
-router.patch(
-  "/bookings/:id/cancel",
-  protect,
-  authorize("admin"),
-  cancelAdminBooking,
-);
-router.patch(
-  "/owners/:id/status",
-  protect,
-  authorize("admin"),
-  updateOwnerStatus,
-);
+router.post("/areas", protect, authorize("admin"), createArea);
+
+router.patch("/areas/:id", protect, authorize("admin"), updateArea);
+
+router.delete("/areas/:id", protect, authorize("admin"), deleteArea);
 
 export default router;

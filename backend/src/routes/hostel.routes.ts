@@ -16,50 +16,29 @@ import upload from "../middleware/upload.middleware.js";
 
 const router = Router();
 
-/*
-
-* Public routes
-  */
-
-// Get all active hostels with filters
 router.get("/", getHostels);
 
-// Get a single active hostel
 router.get("/:id", getHostelById);
 
-/*
+router.post("/", protect, authorize("user", "admin"), createHostel);
 
-* Owner routes
-  */
-
-// Create hostel
-router.post("/", protect, authorize("owner"), createHostel);
-
-// Update hostel
-router.patch("/:id", protect, authorize("owner"), updateHostel);
+router.patch("/:id", protect, authorize("user", "admin"), updateHostel);
 
 // Deactivate hostel
-router.delete("/:id", protect, authorize("owner"), deleteHostel);
+router.delete("/:id", protect, authorize("user", "admin"), deleteHostel);
 
-/*
-
-* Hostel image routes
-  */
-
-// Upload hostel images
 router.post(
   "/:id/images",
   protect,
-  authorize("owner"),
+  authorize("user", "admin"),
   upload.array("images", 10),
   uploadHostelImages,
 );
 
-// Delete a hostel image
 router.delete(
-  "/:id/images",
+  "/:id/images/:imageId",
   protect,
-  authorize("owner", "admin"),
+  authorize("user", "admin"),
   deleteHostelImage,
 );
 

@@ -1,15 +1,12 @@
 import { Router } from "express";
 
 import {
-registerUser,
-loginUser,
-getCurrentUser,
-getOwnerProfile,
-updateOwnerProfile,
-changeOwnerPassword,
-getUserProfile,
-updateUserProfile,
-changeUserPassword,
+  registerUser,
+  loginUser,
+  getCurrentUser,
+  getUserProfile,
+  updateUserProfile,
+  changeUserPassword,
 } from "../controllers/auth.controller.js";
 
 import { protect } from "../middleware/auth.middleware.js";
@@ -24,48 +21,19 @@ router.post("/login", authRateLimiter, loginUser);
 
 router.get("/me", protect, getCurrentUser);
 
-// Owner
-router.get(
-"/owner/profile",
-protect,
-authorize("owner"),
-getOwnerProfile,
-);
+/* =========================
+   USER PROFILE
+========================= */
+
+router.get("/user/profile", protect, authorize("user"), getUserProfile);
+
+router.patch("/user/profile", protect, authorize("user"), updateUserProfile);
 
 router.patch(
-"/owner/profile",
-protect,
-authorize("owner"),
-updateOwnerProfile,
-);
-
-router.patch(
-"/owner/profile/password",
-protect,
-authorize("owner"),
-changeOwnerPassword,
-);
-
-// Normal User
-router.get(
-"/user/profile",
-protect,
-authorize("user"),
-getUserProfile,
-);
-
-router.patch(
-"/user/profile",
-protect,
-authorize("user"),
-updateUserProfile,
-);
-
-router.patch(
-"/user/profile/password",
-protect,
-authorize("user"),
-changeUserPassword,
+  "/user/profile/password",
+  protect,
+  authorize("user"),
+  changeUserPassword,
 );
 
 export default router;

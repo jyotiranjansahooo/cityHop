@@ -2,7 +2,7 @@ import type { NextFunction, Response } from "express";
 
 import type { AuthRequest } from "./auth.middleware.js";
 
-type UserRole = "user" | "owner" | "admin";
+type UserRole = "user" | "admin";
 
 export const authorize = (...allowedRoles: UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
