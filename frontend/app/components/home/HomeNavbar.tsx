@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+
+import { useAuth } from "../lib/auth/AuthProvider";
 
 interface NavItem {
   label: string;
@@ -30,6 +34,8 @@ const navItems: NavItem[] = [
 ];
 
 export default function HomeNavbar(): React.ReactElement {
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+
   return (
     <header className="absolute left-0 right-0 top-0 z-50">
       <nav className="mx-auto flex h-[88px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
@@ -69,25 +75,48 @@ export default function HomeNavbar(): React.ReactElement {
 
         {/* Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Sign in */}
-          <Link
-            href="/login"
-            className="group rounded-full border border-[#526F85]/25 bg-[#E8ECF3]/20 px-4 py-2.5 font-[var(--font-nunito)] text-sm font-semibold text-[#33444E] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#526F85]/40 hover:bg-[#E8ECF3]/40"
-          >
-            Sign in
-          </Link>
+          {!isLoading && isAuthenticated && user ? (
+            <>
+              {/* Profile */}
+              <Link
+                href={user.role === "admin" ? "/admin" : "/dashboard"}
+                className="rounded-full border border-[#526F85]/25 bg-[#E8ECF3]/20 px-4 py-2.5 font-[var(--font-nunito)] text-sm font-semibold text-[#33444E] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#526F85]/40 hover:bg-[#E8ECF3]/40"
+              >
+                {user.role === "admin" ? "Admin" : "Profile"}
+              </Link>
 
-          {/* Get started */}
-          <Link
-            href="/register"
-            className="group hidden rounded-full bg-[#526F85] px-5 py-2.5 font-[var(--font-nunito)] text-sm font-semibold text-[#E8ECF3] shadow-lg shadow-[#526F85]/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#3F596C] hover:shadow-xl sm:inline-flex sm:items-center sm:gap-2"
-          >
-            <span>Get started</span>
+              {/* Logout */}
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-full bg-[#526F85] px-5 py-2.5 font-[var(--font-nunito)] text-sm font-semibold text-[#E8ECF3] shadow-lg shadow-[#526F85]/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#3F596C] hover:shadow-xl"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Sign in */}
+              <Link
+                href="/login"
+                className="group rounded-full border border-[#526F85]/25 bg-[#E8ECF3]/20 px-4 py-2.5 font-[var(--font-nunito)] text-sm font-semibold text-[#33444E] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#526F85]/40 hover:bg-[#E8ECF3]/40"
+              >
+                Sign in
+              </Link>
 
-            <span className="transition-transform duration-300 group-hover:translate-x-0.5">
-              →
-            </span>
-          </Link>
+              {/* Get started */}
+              <Link
+                href="/register"
+                className="group hidden rounded-full bg-[#526F85] px-5 py-2.5 font-[var(--font-nunito)] text-sm font-semibold text-[#E8ECF3] shadow-lg shadow-[#526F85]/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#3F596C] hover:shadow-xl sm:inline-flex sm:items-center sm:gap-2"
+              >
+                <span>Get started</span>
+
+                <span className="transition-transform duration-300 group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
+            </>
+          )}
         </div>
       </nav>
     </header>

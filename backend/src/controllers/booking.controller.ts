@@ -84,15 +84,15 @@ export const approveBooking = async (
       return;
     }
 
- const owner = await User.findById(req.user.id).select("_id role isActive");
+    const owner = await User.findById(req.user.id).select("_id role isActive");
 
-if (!owner || (owner.role !== "user" && owner.role !== "admin")) {
-  res.status(403).json({
-    success: false,
-    message: "You do not have permission to approve bookings",
-  });
-  return;
-}
+    if (!owner || (owner.role !== "user" && owner.role !== "admin")) {
+      res.status(403).json({
+        success: false,
+        message: "You do not have permission to approve bookings",
+      });
+      return;
+    }
 
     if (!owner.isActive) {
       res.status(403).json({
@@ -203,15 +203,15 @@ export const rejectBooking = async (
       return;
     }
 
-  const owner = await User.findById(req.user.id).select("_id role isActive");
+    const owner = await User.findById(req.user.id).select("_id role isActive");
 
-if (!owner || (owner.role !== "user" && owner.role !== "admin")) {
-  res.status(403).json({
-    success: false,
-    message: "You do not have permission to approve bookings",
-  });
-  return;
-}
+    if (!owner || (owner.role !== "user" && owner.role !== "admin")) {
+      res.status(403).json({
+        success: false,
+        message: "You do not have permission to approve bookings",
+      });
+      return;
+    }
     if (!owner.isActive) {
       res.status(403).json({
         success: false,
@@ -377,10 +377,10 @@ export const createBooking = async (
       return;
     }
 
- const owner = await User.findOne({
-  _id: hostelData.owner,
-  isActive: true,
-}).select("_id");
+    const owner = await User.findOne({
+      _id: hostelData.owner,
+      isActive: true,
+    }).select("_id");
 
     if (!owner) {
       res.status(400).json({
