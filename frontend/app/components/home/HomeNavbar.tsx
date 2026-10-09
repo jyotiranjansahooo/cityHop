@@ -79,7 +79,7 @@ export default function HomeNavbar(): React.ReactElement {
             <>
               {/* Profile */}
               <Link
-                href={user.role === "admin" ? "/admin" : "/dashboard"}
+                href={user.role === "admin" ? "/admin" : "/profile"}
                 className="rounded-full border border-[#526F85]/25 bg-[#E8ECF3]/20 px-4 py-2.5 font-[var(--font-nunito)] text-sm font-semibold text-[#33444E] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[#526F85]/40 hover:bg-[#E8ECF3]/40"
               >
                 {user.role === "admin" ? "Admin" : "Profile"}
