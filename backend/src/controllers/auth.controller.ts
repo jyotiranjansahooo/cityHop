@@ -13,10 +13,25 @@ export const registerUser = async (
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    if (
+      typeof name !== "string" ||
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !name.trim() ||
+      !email.trim() ||
+      !password
+    ) {
       res.status(400).json({
         success: false,
         message: "Name, email and password are required",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters long",
       });
       return;
     }
@@ -35,12 +50,10 @@ export const registerUser = async (
       return;
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
-      password: hashedPassword,
+      password,
     });
 
     logger.info(
@@ -61,8 +74,19 @@ export const registerUser = async (
         role: user.role,
       },
     });
-  } catch (error) {
-    logger.error({ error }, "User registration failed");
+  } catch (error: unknown) {
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+              }
+            : error,
+      },
+      "User registration failed",
+    );
 
     res.status(500).json({
       success: false,
@@ -88,7 +112,18 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const user = await User.findOne({
       email: normalizedEmail,
     }).select("+password");
-
+logger.info(
+  {
+    email: normalizedEmail,
+    userFound: Boolean(user),
+    passwordIsString: typeof password === "string",
+    storedPasswordExists: Boolean(user?.password),
+    storedPasswordLooksBcrypt:
+      typeof user?.password === "string" &&
+      /^\$2[aby]\$\d{2}\$/.test(user.password),
+  },
+  "Login diagnostic",
+);
     if (!user) {
       res.status(401).json({
         success: false,
@@ -97,15 +132,25 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+const isPasswordValid = await bcrypt.compare(
+  password,
+  user.password,
+);
 
-    if (!isPasswordValid) {
-      res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-      return;
-    }
+logger.info(
+  {
+    passwordMatchesStoredHash: isPasswordValid,
+  },
+  "Password verification diagnostic",
+);
+
+if (!isPasswordValid) {
+  res.status(401).json({
+    success: false,
+    message: "Invalid email or password",
+  });
+  return;
+}
 
     if (!user.isActive) {
       res.status(403).json({
@@ -600,8 +645,7 @@ export const changeUserPassword = async (
       return;
     }
 
-    const user = await User.findById(req.user.id);
-
+    const user = await User.findById(req.user.id).select("+password");
     if (!user) {
       res.status(404).json({
         success: false,
@@ -647,8 +691,20 @@ export const changeUserPassword = async (
       success: true,
       message: "Password changed successfully",
     });
-  } catch (error) {
-    logger.error({ error }, "Failed to change user password");
+  } catch (error: unknown) {
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+              }
+            : error,
+      },
+      "Failed to change user password",
+    );
 
     res.status(500).json({
       success: false,

@@ -1,8 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+
 import Image from "next/image";
+
 import { useRouter } from "next/navigation";
+
 import {
   ArrowRight,
   Check,
@@ -18,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../components/lib/auth/AuthProvider";
+
 import {
   changeUserPassword,
   getUserProfile,
@@ -30,28 +35,38 @@ export default function ProfilePage(): React.ReactElement {
 
   const {
     user,
+
     token,
+
     isAuthenticated,
+
     isLoading: authLoading,
+
     refreshUser,
   } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const [profileLoading, setProfileLoading] = useState(true);
+
   const [profileError, setProfileError] = useState("");
 
   const [editing, setEditing] = useState(false);
+
   const [name, setName] = useState("");
 
   const [savingProfile, setSavingProfile] = useState(false);
+
   const [profileMessage, setProfileMessage] = useState("");
+
   const [profileSaveError, setProfileSaveError] = useState("");
 
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
+
   const [newPassword, setNewPassword] = useState("");
+
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -61,9 +76,12 @@ export default function ProfilePage(): React.ReactElement {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [passwordSaving, setPasswordSaving] = useState(false);
+
   const [passwordError, setPasswordError] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
 
   const [imageLoading, setImageLoading] = useState(true);
+
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
@@ -73,11 +91,13 @@ export default function ProfilePage(): React.ReactElement {
 
     if (!isAuthenticated || !token) {
       router.replace("/login");
+
       return;
     }
 
     if (user?.role === "admin") {
       router.replace("/admin");
+
       return;
     }
 
@@ -86,12 +106,14 @@ export default function ProfilePage(): React.ReactElement {
     const loadProfile = async (): Promise<void> => {
       try {
         setProfileLoading(true);
+
         setProfileError("");
 
         const response = await getUserProfile(token);
 
         if (!cancelled) {
           setProfile(response.data);
+
           setName(response.data.name);
         }
       } catch (error: unknown) {
@@ -129,19 +151,25 @@ export default function ProfilePage(): React.ReactElement {
 
     if (!trimmedName) {
       setProfileSaveError("Please enter your name.");
+
       return;
     }
 
     try {
       setSavingProfile(true);
+
       setProfileSaveError("");
+
       setProfileMessage("");
 
       const response = await updateUserProfile(token, trimmedName);
 
       setProfile(response.data);
+
       setName(response.data.name);
+
       setProfileMessage(response.message);
+
       setEditing(false);
 
       await refreshUser();
@@ -162,10 +190,12 @@ export default function ProfilePage(): React.ReactElement {
     event.preventDefault();
 
     if (!token) {
+      setPasswordError("Your session has expired. Please log in again.");
       return;
     }
 
     setPasswordError("");
+    setPasswordMessage("");
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordError("Please complete all password fields.");
@@ -182,25 +212,39 @@ export default function ProfilePage(): React.ReactElement {
       return;
     }
 
+    if (currentPassword === newPassword) {
+      setPasswordError(
+        "Your new password must be different from your current password.",
+      );
+      return;
+    }
+
     try {
       setPasswordSaving(true);
 
-      await changeUserPassword(token, currentPassword, newPassword);
+      const response = await changeUserPassword(
+        token,
+        currentPassword,
+        newPassword,
+      );
 
+      if (!response.success) {
+        throw new Error(response.message || "Unable to change your password.");
+      }
+
+      setPasswordMessage(response.message || "Password changed successfully.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-
       setShowCurrentPassword(false);
       setShowNewPassword(false);
       setShowConfirmPassword(false);
-
       setPasswordModalOpen(false);
     } catch (error: unknown) {
       setPasswordError(
         error instanceof Error
           ? error.message
-          : "Unable to change your password.",
+          : "Unable to change your password. Please try again.",
       );
     } finally {
       setPasswordSaving(false);
@@ -210,6 +254,7 @@ export default function ProfilePage(): React.ReactElement {
   const formatMemberDate = (date: string): string => {
     return new Intl.DateTimeFormat("en-IN", {
       month: "short",
+
       year: "numeric",
     }).format(new Date(date));
   };
@@ -220,8 +265,11 @@ export default function ProfilePage(): React.ReactElement {
     }
 
     setName(profile.name);
+
     setProfileSaveError("");
+
     setProfileMessage("");
+
     setEditing(true);
   };
 
@@ -231,18 +279,24 @@ export default function ProfilePage(): React.ReactElement {
     }
 
     setEditing(false);
+
     setProfileSaveError("");
   };
 
   const openPasswordModal = (): void => {
     setPasswordError("");
+    setPasswordMessage("");
 
     setCurrentPassword("");
+
     setNewPassword("");
+
     setConfirmPassword("");
 
     setShowCurrentPassword(false);
+
     setShowNewPassword(false);
+
     setShowConfirmPassword(false);
 
     setPasswordModalOpen(true);
@@ -254,10 +308,13 @@ export default function ProfilePage(): React.ReactElement {
     }
 
     setPasswordModalOpen(false);
+
     setPasswordError("");
 
     setCurrentPassword("");
+
     setNewPassword("");
+
     setConfirmPassword("");
   };
 
@@ -315,6 +372,7 @@ export default function ProfilePage(): React.ReactElement {
     <>
       <main className="relative h-[100svh] overflow-hidden bg-[#E8ECF3] px-5 pt-[88px] sm:px-8">
         {/* Background decoration */}
+
         <div className="pointer-events-none absolute -left-56 top-24 h-[520px] w-[520px] rounded-full bg-[#A7BDD3]/20 blur-3xl" />
 
         <div className="pointer-events-none absolute -right-56 bottom-[-180px] h-[600px] w-[600px] rounded-full bg-white/50 blur-3xl" />
@@ -322,20 +380,28 @@ export default function ProfilePage(): React.ReactElement {
         <div className="relative mx-auto h-full max-w-7xl">
           <div className="grid h-full min-h-0 items-center gap-7 lg:grid-cols-[0.9fr_1.1fr] xl:gap-10">
             {/* ================================================= */}
+
             {/* LEFT SIDE */}
+
             {/* ================================================= */}
 
             <section className="flex min-h-0 flex-col justify-center">
               {/* Label */}
+
               <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#D7E2ED] px-4 py-2 font-[var(--font-nunito)] text-[11px] font-bold uppercase tracking-[0.2em] text-[#58718B]">
                 <span>EXPLORE</span>
+
                 <span>•</span>
+
                 <span>PLAN</span>
+
                 <span>•</span>
+
                 <span>MOVE</span>
               </div>
 
               {/* Heading */}
+
               <h1 className="mt-5 font-[var(--font-fredoka)] text-[44px] font-semibold leading-[0.94] tracking-[-0.035em] text-[#102338] sm:text-[52px] xl:text-[58px]">
                 Your
                 <br />
@@ -348,8 +414,10 @@ export default function ProfilePage(): React.ReactElement {
               </p>
 
               {/* Profile card */}
+
               <div className="mt-6 max-w-[620px] rounded-[30px] border border-white/80 bg-white/70 p-4 shadow-[0_22px_65px_rgba(76,104,130,0.13)] backdrop-blur-xl sm:p-5">
                 {/* User header */}
+
                 <div className="flex items-center justify-between gap-4 border-b border-[#B8C9D8]/40 pb-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#6689A5] to-[#526F85] shadow-lg shadow-[#526F85]/20">
@@ -389,9 +457,11 @@ export default function ProfilePage(): React.ReactElement {
                 </div>
 
                 {/* Profile fields */}
+
                 <form onSubmit={handleProfileSubmit}>
                   <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
                     {/* Name */}
+
                     <div className="flex min-w-0 items-center gap-3 rounded-[17px] border border-[#C5D2DF]/60 bg-white/50 px-3.5 py-3">
                       <UserRound className="h-5 w-5 shrink-0 text-[#607991]" />
 
@@ -417,6 +487,7 @@ export default function ProfilePage(): React.ReactElement {
                     </div>
 
                     {/* Email */}
+
                     <div className="flex min-w-0 items-center gap-3 rounded-[17px] border border-[#C5D2DF]/60 bg-white/50 px-3.5 py-3">
                       <Mail className="h-5 w-5 shrink-0 text-[#607991]" />
 
@@ -432,6 +503,7 @@ export default function ProfilePage(): React.ReactElement {
                     </div>
 
                     {/* Region */}
+
                     <div className="flex min-w-0 items-center gap-3 rounded-[17px] border border-[#C5D2DF]/60 bg-white/50 px-3.5 py-3">
                       <MapPin className="h-5 w-5 shrink-0 text-[#607991]" />
 
@@ -447,6 +519,7 @@ export default function ProfilePage(): React.ReactElement {
                     </div>
 
                     {/* Member since */}
+
                     <div className="flex min-w-0 items-center gap-3 rounded-[17px] border border-[#C5D2DF]/60 bg-white/50 px-3.5 py-3">
                       <ShieldCheck className="h-5 w-5 shrink-0 text-[#607991]" />
 
@@ -463,6 +536,7 @@ export default function ProfilePage(): React.ReactElement {
                   </div>
 
                   {/* Security */}
+
                   <div className="mt-2.5 flex items-center justify-between gap-3 rounded-[17px] border border-[#C5D2DF]/60 bg-white/50 px-3.5 py-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E2EBF2] text-[#58718B]">
@@ -490,6 +564,7 @@ export default function ProfilePage(): React.ReactElement {
                   </div>
 
                   {/* Edit buttons */}
+
                   {editing ? (
                     <div className="mt-3 flex gap-2.5">
                       <button
@@ -512,14 +587,27 @@ export default function ProfilePage(): React.ReactElement {
                 </form>
 
                 {/* Success */}
+
                 {profileMessage ? (
                   <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#E1F0E7] px-3 py-2.5 font-[var(--font-nunito)] text-xs font-semibold text-[#47745C]">
                     <Check className="h-3.5 w-3.5" />
+
                     {profileMessage}
                   </div>
                 ) : null}
 
+                {passwordMessage ? (
+                  <div
+                    role="status"
+                    className="mt-3 flex items-center gap-2 rounded-xl bg-[#E1F0E7] px-3 py-2.5 font-[var(--font-nunito)] text-xs font-semibold text-[#47745C]"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    {passwordMessage}
+                  </div>
+                ) : null}
+
                 {/* Error */}
+
                 {profileSaveError ? (
                   <p className="mt-3 rounded-xl bg-red-50 px-3 py-2.5 font-[var(--font-nunito)] text-xs font-semibold text-red-600">
                     {profileSaveError}
@@ -529,213 +617,204 @@ export default function ProfilePage(): React.ReactElement {
             </section>
 
             {/* ================================================= */}
+
             {/* RIGHT SIDE */}
+
             {/* ================================================= */}
 
-          <section className="relative hidden h-[calc(100svh-118px)] min-h-0 max-h-[780px] lg:block">
+            <section className="relative hidden h-[calc(100svh-118px)] min-h-0 max-h-[780px] lg:block">
+              <div
+                className="absolute -inset-x-4 -bottom-2 -top-5 bg-[#C8DCEE]"
+                style={{
+                  borderRadius: "42% 58% 52% 48% / 28% 32% 68% 72%",
+                }}
+              />
 
-  {/* ===================================================== */}
-  {/* LARGE BACKGROUND BLOB */}
-  {/* ===================================================== */}
+              {/* Soft blob shadow */}
 
-  <div
-    className="absolute -inset-x-4 -bottom-2 -top-5 bg-[#C8DCEE]"
-    style={{
-      borderRadius:
-        "42% 58% 52% 48% / 28% 32% 68% 72%",
-    }}
-  />
+              <div
+                className="pointer-events-none absolute -inset-x-6 -bottom-4 -top-7 -z-10 bg-[#91B1CA]/30 blur-3xl"
+                style={{
+                  borderRadius: "42% 58% 52% 48% / 28% 32% 68% 72%",
+                }}
+              />
 
-  {/* Soft blob shadow */}
-  <div
-    className="pointer-events-none absolute -inset-x-6 -bottom-4 -top-7 -z-10 bg-[#91B1CA]/30 blur-3xl"
-    style={{
-      borderRadius:
-        "42% 58% 52% 48% / 28% 32% 68% 72%",
-    }}
-  />
+              {/* ===================================================== */}
 
-  {/* ===================================================== */}
-  {/* ROUTE HEADER — OUTSIDE IMAGE, BUT INSIDE LARGE BLOB */}
-  {/* ===================================================== */}
+              {/* ROUTE HEADER — OUTSIDE IMAGE, BUT INSIDE LARGE BLOB */}
 
-  <div className="absolute left-3 right-3 top-1 z-50 flex items-start justify-between">
+              {/* ===================================================== */}
 
-    {/* Bhubaneswar */}
-    <div className="flex flex-col items-center">
-      <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/90 bg-white/90 shadow-md">
-        <MapPin className="h-5 w-5 text-[#527696]" />
-      </div>
+              <div className="absolute left-[12%] right-[12%] top-[8%] z-50 flex items-start justify-between">
+                {/* Bhubaneswar */}
 
-      <span className="mt-1.5 rounded-full border border-white/80 bg-white/90 px-3 py-1 font-[var(--font-nunito)] text-[11px] font-bold text-[#526F85] shadow-sm">
-        Bhubaneswar
-      </span>
-    </div>
+                <div className="flex flex-col items-center">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/90 bg-white/90 shadow-md">
+                    <MapPin className="h-5 w-5 text-[#527696]" />
+                  </div>
 
-    {/* Your Journey */}
-    <div className="mt-5 flex flex-col items-center">
-      <div className="flex items-center gap-2">
-        <span className="w-12 border-t-2 border-dashed border-[#6689A5]/60 xl:w-20" />
+                  <span className="mt-1.5 rounded-full border border-white/80 bg-white/90 px-3 py-1 font-[var(--font-nunito)] text-[11px] font-bold text-[#526F85] shadow-sm">
+                    Bhubaneswar
+                  </span>
+                </div>
 
-        <span className="whitespace-nowrap font-[var(--font-nunito)] text-[10px] font-bold uppercase tracking-[0.2em] text-[#6689A5]">
-          Your Journey
-        </span>
+                {/* Your Journey */}
 
-        <span className="w-12 border-t-2 border-dashed border-[#6689A5]/60 xl:w-20" />
-      </div>
-    </div>
+                <div className="mt-5 flex flex-col items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="w-12 border-t-2 border-dashed border-[#6689A5]/60 xl:w-20" />
 
-    {/* Puri */}
-    <div className="flex flex-col items-center">
-      <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/90 bg-white/90 shadow-md">
-        <MapPin className="h-5 w-5 text-[#527696]" />
-      </div>
+                    <span className="whitespace-nowrap font-[var(--font-nunito)] text-[10px] font-bold uppercase tracking-[0.2em] text-[#6689A5]">
+                      Your Journey
+                    </span>
 
-      <span className="mt-1.5 rounded-full border border-white/80 bg-white/90 px-3 py-1 font-[var(--font-nunito)] text-[11px] font-bold text-[#526F85] shadow-sm">
-        Puri
-      </span>
-    </div>
+                    <span className="w-12 border-t-2 border-dashed border-[#6689A5]/60 xl:w-20" />
+                  </div>
+                </div>
 
-  </div>
+                {/* Puri */}
 
-  {/* ===================================================== */}
-  {/* IMAGE — SEPARATE FROM HEADER */}
-  {/* ===================================================== */}
+                <div className="flex flex-col items-center">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/90 bg-white/90 shadow-md">
+                    <MapPin className="h-5 w-5 text-[#527696]" />
+                  </div>
 
-  <div
-    className="absolute left-[2%] right-[2%] top-[18%] bottom-[14%] overflow-hidden"
-    style={{
-      borderRadius:
-        "45% 55% 52% 48% / 34% 38% 62% 66%",
-    }}
-  >
+                  <span className="mt-1.5 rounded-full border border-white/80 bg-white/90 px-3 py-1 font-[var(--font-nunito)] text-[11px] font-bold text-[#526F85] shadow-sm">
+                    Puri
+                  </span>
+                </div>
+              </div>
 
-    {/* Image loading */}
-    {imageLoading && !imageError ? (
-      <div className="absolute inset-0 z-20 bg-gradient-to-br from-[#DDEAF6] via-[#C5DBEB] to-[#A9C4DA]">
+              {/* ===================================================== */}
 
-        <div className="absolute inset-0 animate-pulse bg-white/10" />
+              {/* IMAGE — SEPARATE FROM HEADER */}
 
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex flex-col items-center">
+              {/* ===================================================== */}
 
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/80 bg-white/75 shadow-xl backdrop-blur-xl">
-              <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-[#6689A5]/25 border-t-[#6689A5]" />
-            </div>
+              <div
+                className="absolute left-[3%] right-[3%] top-[27%] bottom-[14%] overflow-hidden"
+                style={{
+                  borderRadius: "45% 55% 52% 48% / 34% 38% 62% 66%",
+                }}
+              >
+                {/* Image loading */}
 
-            <div className="mt-4 rounded-full border border-white/70 bg-white/80 px-4 py-2 shadow-sm">
-              <p className="font-[var(--font-nunito)] text-xs font-bold text-[#526F85]">
-                Loading Odisha...
-              </p>
-            </div>
+                {imageLoading && !imageError ? (
+                  <div className="absolute inset-0 z-20 bg-gradient-to-br from-[#DDEAF6] via-[#C5DBEB] to-[#A9C4DA]">
+                    <div className="absolute inset-0 animate-pulse bg-white/10" />
 
-          </div>
-        </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex flex-col items-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/80 bg-white/75 shadow-xl backdrop-blur-xl">
+                          <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-[#6689A5]/25 border-t-[#6689A5]" />
+                        </div>
 
-      </div>
-    ) : null}
+                        <div className="mt-4 rounded-full border border-white/70 bg-white/80 px-4 py-2 shadow-sm">
+                          <p className="font-[var(--font-nunito)] text-xs font-bold text-[#526F85]">
+                            Loading Odisha...
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
-    {/* Real image */}
-    {!imageError ? (
-      <Image
-        src="/images/cityhop-profile.png"
-        alt="Odisha coastal road, beach and Jagannath temple"
-        fill
-        priority
-        sizes="(min-width: 1280px) 55vw, 50vw"
-        className={
-          "object-cover object-center transition-all duration-700 " +
-          (imageLoading
-            ? "scale-[1.03] opacity-0"
-            : "scale-100 opacity-100")
-        }
-        onLoad={() => {
-          setImageLoading(false);
-        }}
-        onError={() => {
-          setImageLoading(false);
-          setImageError(true);
-        }}
-      />
-    ) : (
-      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#DCEAF6] to-[#A9C4DA]">
+                {/* Real image */}
 
-        <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/80">
-            <MapPin className="h-6 w-6 text-[#6689A5]" />
-          </div>
+                {!imageError ? (
+                  <Image
+                    src="/images/cityhop-profile.png"
+                    alt="Odisha coastal road, beach and Jagannath temple"
+                    fill
+                    priority
+                    sizes="(min-width: 1280px) 55vw, 50vw"
+                    className={
+                      "object-cover object-center transition-all duration-700 " +
+                      (imageLoading
+                        ? "scale-[1.03] opacity-0"
+                        : "scale-100 opacity-100")
+                    }
+                    onLoad={() => {
+                      setImageLoading(false);
+                    }}
+                    onError={() => {
+                      setImageLoading(false);
 
-          <p className="mt-4 font-[var(--font-fredoka)] text-lg font-semibold text-[#526F85]">
-            Odisha image unavailable
-          </p>
+                      setImageError(true);
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#DCEAF6] to-[#A9C4DA]">
+                    <div className="text-center">
+                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/80">
+                        <MapPin className="h-6 w-6 text-[#6689A5]" />
+                      </div>
 
-          <p className="mt-1 font-[var(--font-nunito)] text-xs text-[#718397]">
-            Check public/images/cityhop-profile.png
-          </p>
-        </div>
+                      <p className="mt-4 font-[var(--font-fredoka)] text-lg font-semibold text-[#526F85]">
+                        Odisha image unavailable
+                      </p>
 
-      </div>
-    )}
+                      <p className="mt-1 font-[var(--font-nunito)] text-xs text-[#718397]">
+                        Check public/images/cityhop-profile.png
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-    {!imageError ? (
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#263640]/15 via-transparent to-white/10" />
-    ) : null}
+                {!imageError ? (
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#263640]/15 via-transparent to-white/10" />
+                ) : null}
+              </div>
 
-  </div>
+              {/* ===================================================== */}
 
-  {/* ===================================================== */}
-  {/* SAME ROADS / NEW STORIES */}
-  {/* ===================================================== */}
+              {/* SAME ROADS / NEW STORIES */}
 
-  <div className="absolute right-[5%] top-[28%] z-50 rotate-[-4deg] text-right">
+              {/* ===================================================== */}
 
-    <p className="font-[var(--font-fredoka)] text-xl font-semibold leading-tight text-[#527696] xl:text-2xl">
-      Same Roads
-    </p>
+              <div className="absolute right-[11%] top-[16%] z-50 rotate-[-4deg] text-right">
+                <p className="font-[var(--font-fredoka)] text-xl font-semibold leading-tight text-[#527696] xl:text-2xl">
+                  Same Roads
+                </p>
 
-    <p className="font-[var(--font-fredoka)] text-xl font-semibold leading-tight text-[#527696] xl:text-2xl">
-      New Stories
-    </p>
+                <p className="font-[var(--font-fredoka)] text-xl font-semibold leading-tight text-[#527696] xl:text-2xl">
+                  New Stories
+                </p>
 
-    <div className="ml-auto mt-2 h-1 w-28 rotate-[-5deg] rounded-full bg-[#527696]/60" />
+                <div className="ml-auto mt-2 h-1 w-28 rotate-[-5deg] rounded-full bg-[#527696]/60" />
+              </div>
 
-  </div>
+              {/* ===================================================== */}
 
-  {/* ===================================================== */}
-  {/* BOTTOM FEATURES */}
-  {/* ===================================================== */}
+              {/* BOTTOM FEATURES */}
 
-  <div className="absolute bottom-0 left-0 right-0 z-50 rounded-[24px] border border-white/90 bg-white/80 p-2.5 shadow-[0_20px_50px_rgba(76,104,130,0.15)] backdrop-blur-xl">
+              {/* ===================================================== */}
 
-    <div className="grid grid-cols-3 divide-x divide-[#9EB2C4]/40">
+              <div className="absolute bottom-0 left-0 right-0 z-50 rounded-[24px] border border-white/90 bg-white/80 p-2.5 shadow-[0_20px_50px_rgba(76,104,130,0.15)] backdrop-blur-xl">
+                <div className="grid grid-cols-3 divide-x divide-[#9EB2C4]/40">
+                  <Feature
+                    icon={<MapPin className="h-4 w-4" />}
+                    title="Plan Routes"
+                    subtitle="Bus, Train, Car"
+                  />
 
-      <Feature
-        icon={<MapPin className="h-4 w-4" />}
-        title="Plan Routes"
-        subtitle="Bus, Train, Car"
-      />
+                  <Feature
+                    icon={<ShieldCheck className="h-4 w-4" />}
+                    title="Stay Secure"
+                    subtitle="Protected account"
+                  />
 
-      <Feature
-        icon={<ShieldCheck className="h-4 w-4" />}
-        title="Stay Secure"
-        subtitle="Protected account"
-      />
-
-      <Feature
-        icon={<ArrowRight className="h-4 w-4" />}
-        title="Keep Moving"
-        subtitle="Explore Odisha"
-      />
-
-    </div> 
-
-  </div>
-
-</section>
+                  <Feature
+                    icon={<ArrowRight className="h-4 w-4" />}
+                    title="Keep Moving"
+                    subtitle="Explore Odisha"
+                  />
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </main>
-
 
       {passwordModalOpen ? (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#152535]/45 px-5 py-6 backdrop-blur-md">
@@ -820,13 +899,11 @@ export default function ProfilePage(): React.ReactElement {
   );
 }
 
-/* ========================================================= */
-/* FEATURE ITEM */
-/* ========================================================= */
-
 interface FeatureProps {
   icon: React.ReactNode;
+
   title: string;
+
   subtitle: string;
 }
 
@@ -848,25 +925,31 @@ function Feature({ icon, title, subtitle }: FeatureProps): React.ReactElement {
   );
 }
 
-/* ========================================================= */
-/* PASSWORD FIELD */
-/* ========================================================= */
-
 interface PasswordFieldProps {
   id: string;
+
   label: string;
+
   value: string;
+
   visible: boolean;
+
   onChange: (value: string) => void;
+
   onToggle: () => void;
 }
 
 function PasswordField({
   id,
+
   label,
+
   value,
+
   visible,
+
   onChange,
+
   onToggle,
 }: PasswordFieldProps): React.ReactElement {
   return (
