@@ -112,18 +112,18 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const user = await User.findOne({
       email: normalizedEmail,
     }).select("+password");
-logger.info(
-  {
-    email: normalizedEmail,
-    userFound: Boolean(user),
-    passwordIsString: typeof password === "string",
-    storedPasswordExists: Boolean(user?.password),
-    storedPasswordLooksBcrypt:
-      typeof user?.password === "string" &&
-      /^\$2[aby]\$\d{2}\$/.test(user.password),
-  },
-  "Login diagnostic",
-);
+    logger.info(
+      {
+        email: normalizedEmail,
+        userFound: Boolean(user),
+        passwordIsString: typeof password === "string",
+        storedPasswordExists: Boolean(user?.password),
+        storedPasswordLooksBcrypt:
+          typeof user?.password === "string" &&
+          /^\$2[aby]\$\d{2}\$/.test(user.password),
+      },
+      "Login diagnostic",
+    );
     if (!user) {
       res.status(401).json({
         success: false,
@@ -132,25 +132,22 @@ logger.info(
       return;
     }
 
-const isPasswordValid = await bcrypt.compare(
-  password,
-  user.password,
-);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-logger.info(
-  {
-    passwordMatchesStoredHash: isPasswordValid,
-  },
-  "Password verification diagnostic",
-);
+    logger.info(
+      {
+        passwordMatchesStoredHash: isPasswordValid,
+      },
+      "Password verification diagnostic",
+    );
 
-if (!isPasswordValid) {
-  res.status(401).json({
-    success: false,
-    message: "Invalid email or password",
-  });
-  return;
-}
+    if (!isPasswordValid) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+      return;
+    }
 
     if (!user.isActive) {
       res.status(403).json({

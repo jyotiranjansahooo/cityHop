@@ -3,26 +3,33 @@ import type { NextFunction, Request, Response } from "express";
 import { Types } from "mongoose";
 
 import User from "../models/User.js";
+import type { UserRole } from "../models/User.js";
 import logger from "../utils/logger.js";
 
 export interface AuthRequest extends Request {
   user?: {
     id: string;
-    role: string;
+    role: UserRole;
   };
 }
 
 interface JwtPayload {
   userId: string;
-  role: string;
+  role: UserRole;
 }
 
-const isJwtPayload = (value: string | jwt.JwtPayload): value is JwtPayload => {
+const isUserRole = (value: unknown): value is UserRole => {
+  return value === "user" || value === "admin";
+};
+
+const isJwtPayload = (
+  value: string | jwt.JwtPayload,
+): value is jwt.JwtPayload & JwtPayload => {
   if (typeof value === "string") {
     return false;
   }
 
-  return typeof value.userId === "string" && typeof value.role === "string";
+  return typeof value.userId === "string" && isUserRole(value.role);
 };
 
 export const protect = async (
@@ -54,7 +61,7 @@ export const protect = async (
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
-      logger.error("JWT_SECRET is not defined");
+      logger.error("JWT_SECRET is not configured");
 
       res.status(500).json({
         success: false,
@@ -107,7 +114,7 @@ export const protect = async (
     };
 
     next();
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({
         success: false,
@@ -124,7 +131,18 @@ export const protect = async (
       return;
     }
 
-    logger.error({ error }, "Authentication failed");
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+              }
+            : error,
+      },
+      "Authentication failed",
+    );
 
     res.status(500).json({
       success: false,
@@ -133,12 +151,12 @@ export const protect = async (
   }
 };
 
-export const authorize = (...roles: string[]) => {
+export const authorize = (...roles: UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: "Authentication required",
       });
       return;
     }
