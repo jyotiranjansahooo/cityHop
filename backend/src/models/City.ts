@@ -45,7 +45,6 @@ const citySchema = new Schema<ICity>(
 );
 
 const City: Model<ICity> =
-  mongoose.models.City ||
-  mongoose.model<ICity>("City", citySchema);
+  mongoose.models.City || mongoose.model<ICity>("City", citySchema);
 
 export default City;

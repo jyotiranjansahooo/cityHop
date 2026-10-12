@@ -21,10 +21,6 @@ router.post("/login", authRateLimiter, loginUser);
 
 router.get("/me", protect, getCurrentUser);
 
-/* =========================
-   USER PROFILE
-========================= */
-
 router.get("/user/profile", protect, authorize("user"), getUserProfile);
 
 router.patch("/user/profile", protect, authorize("user"), updateUserProfile);

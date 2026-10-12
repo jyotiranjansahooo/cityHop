@@ -1,13 +1,18 @@
 import bcrypt from "bcryptjs";
+
 import type { Request, Response } from "express";
 
 import User from "../models/User.js";
+
 import generateToken from "../utils/generateToken.js";
+
 import logger from "../utils/logger.js";
+
 import type { AuthRequest } from "../middleware/auth.middleware.js";
 
 export const registerUser = async (
   req: Request,
+
   res: Response,
 ): Promise<void> => {
   try {
@@ -23,16 +28,20 @@ export const registerUser = async (
     ) {
       res.status(400).json({
         success: false,
+
         message: "Name, email and password are required",
       });
+
       return;
     }
 
     if (password.length < 6) {
       res.status(400).json({
         success: false,
+
         message: "Password must be at least 6 characters long",
       });
+
       return;
     }
 
@@ -45,32 +54,43 @@ export const registerUser = async (
     if (existingUser) {
       res.status(409).json({
         success: false,
+
         message: "User already exists with this email",
       });
+
       return;
     }
 
     const user = await User.create({
       name: name.trim(),
+
       email: normalizedEmail,
+
       password,
     });
 
     logger.info(
       {
         userId: user._id.toString(),
+
         email: user.email,
       },
+
       "New user registered",
     );
 
     res.status(201).json({
       success: true,
+
       message: "User registered successfully",
+
       user: {
         id: user._id,
+
         name: user.name,
+
         email: user.email,
+
         role: user.role,
       },
     });
@@ -81,15 +101,18 @@ export const registerUser = async (
           error instanceof Error
             ? {
                 name: error.name,
+
                 message: error.message,
               }
             : error,
       },
+
       "User registration failed",
     );
 
     res.status(500).json({
       success: false,
+
       message: "Internal server error",
     });
   }
@@ -102,8 +125,10 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     if (!email || !password) {
       res.status(400).json({
         success: false,
+
         message: "Email and password are required",
       });
+
       return;
     }
 
@@ -112,72 +137,69 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const user = await User.findOne({
       email: normalizedEmail,
     }).select("+password");
-    logger.info(
-      {
-        email: normalizedEmail,
-        userFound: Boolean(user),
-        passwordIsString: typeof password === "string",
-        storedPasswordExists: Boolean(user?.password),
-        storedPasswordLooksBcrypt:
-          typeof user?.password === "string" &&
-          /^\$2[aby]\$\d{2}\$/.test(user.password),
-      },
-      "Login diagnostic",
-    );
+
     if (!user) {
       res.status(401).json({
         success: false,
+
         message: "Invalid email or password",
       });
+
       return;
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    logger.info(
-      {
-        passwordMatchesStoredHash: isPasswordValid,
-      },
-      "Password verification diagnostic",
-    );
-
     if (!isPasswordValid) {
       res.status(401).json({
         success: false,
+
         message: "Invalid email or password",
       });
+
       return;
     }
 
     if (!user.isActive) {
       res.status(403).json({
         success: false,
+
         message: "Your account is inactive",
       });
+
       return;
     }
 
     const token = generateToken({
       userId: user._id.toString(),
+
       role: user.role,
     });
 
     logger.info(
       {
         userId: user._id.toString(),
+
         email: user.email,
       },
+
       "User logged in",
     );
 
     res.status(200).json({
       success: true,
+
       message: "Login successful",
+
       token,
+
       user: {
         id: user._id,
+
         name: user.name,
+
         email: user.email,
+
         role: user.role,
       },
     });
@@ -186,6 +208,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
     res.status(500).json({
       success: false,
+
       message: "Internal server error",
     });
   }
@@ -193,14 +216,17 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
 export const getCurrentUser = async (
   req: AuthRequest,
+
   res: Response,
 ): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
+
         message: "Unauthorized",
       });
+
       return;
     }
 
@@ -209,19 +235,27 @@ export const getCurrentUser = async (
     if (!user) {
       res.status(404).json({
         success: false,
+
         message: "User not found",
       });
+
       return;
     }
 
     res.status(200).json({
       success: true,
+
       user: {
         id: user._id,
+
         name: user.name,
+
         email: user.email,
+
         role: user.role,
+
         isActive: user.isActive,
+
         createdAt: user.createdAt,
       },
     });
@@ -230,20 +264,25 @@ export const getCurrentUser = async (
 
     res.status(500).json({
       success: false,
+
       message: "Internal server error",
     });
   }
 };
+
 export const getOwnerProfile = async (
   req: AuthRequest,
+
   res: Response,
 ): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
+
         message: "Unauthorized",
       });
+
       return;
     }
 
@@ -252,13 +291,16 @@ export const getOwnerProfile = async (
     if (!user) {
       res.status(404).json({
         success: false,
+
         message: "User not found",
       });
+
       return;
     }
 
     res.status(200).json({
       success: true,
+
       user,
     });
   } catch (error) {
@@ -266,20 +308,25 @@ export const getOwnerProfile = async (
 
     res.status(500).json({
       success: false,
+
       message: "Internal server error",
     });
   }
 };
+
 export const updateOwnerProfile = async (
   req: AuthRequest,
+
   res: Response,
 ): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
+
         message: "Unauthorized",
       });
+
       return;
     }
 
@@ -291,8 +338,10 @@ export const updateOwnerProfile = async (
     ) {
       res.status(400).json({
         success: false,
+
         message: "Name must be a valid non-empty string",
       });
+
       return;
     }
 
@@ -302,16 +351,20 @@ export const updateOwnerProfile = async (
     ) {
       res.status(400).json({
         success: false,
+
         message: "Email must be a valid non-empty string",
       });
+
       return;
     }
 
     if (name === undefined && email === undefined) {
       res.status(400).json({
         success: false,
+
         message: "At least one field is required",
       });
+
       return;
     }
 
@@ -320,8 +373,10 @@ export const updateOwnerProfile = async (
     if (!user) {
       res.status(404).json({
         success: false,
+
         message: "User not found",
       });
+
       return;
     }
 
@@ -335,6 +390,7 @@ export const updateOwnerProfile = async (
       if (normalizedEmail !== user.email) {
         const existingUser = await User.findOne({
           email: normalizedEmail,
+
           _id: {
             $ne: user._id,
           },
@@ -343,8 +399,10 @@ export const updateOwnerProfile = async (
         if (existingUser) {
           res.status(409).json({
             success: false,
+
             message: "Email is already in use",
           });
+
           return;
         }
 
@@ -358,18 +416,26 @@ export const updateOwnerProfile = async (
       {
         userId: user._id.toString(),
       },
+
       "Owner profile updated",
     );
 
     res.status(200).json({
       success: true,
+
       message: "Profile updated successfully",
+
       user: {
         id: user._id,
+
         name: user.name,
+
         email: user.email,
+
         role: user.role,
+
         isActive: user.isActive,
+
         createdAt: user.createdAt,
       },
     });
@@ -378,20 +444,25 @@ export const updateOwnerProfile = async (
 
     res.status(500).json({
       success: false,
+
       message: "Internal server error",
     });
   }
 };
+
 export const changeOwnerPassword = async (
   req: AuthRequest,
+
   res: Response,
 ): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
+
         message: "Unauthorized",
       });
+
       return;
     }
 
@@ -405,16 +476,20 @@ export const changeOwnerPassword = async (
     ) {
       res.status(400).json({
         success: false,
+
         message: "Current password and new password are required",
       });
+
       return;
     }
 
     if (newPassword.length < 6) {
       res.status(400).json({
         success: false,
+
         message: "New password must be at least 6 characters",
       });
+
       return;
     }
 
@@ -423,21 +498,26 @@ export const changeOwnerPassword = async (
     if (!user) {
       res.status(404).json({
         success: false,
+
         message: "User not found",
       });
+
       return;
     }
 
     const isPasswordCorrect = await bcrypt.compare(
       currentPassword,
+
       user.password,
     );
 
     if (!isPasswordCorrect) {
       res.status(400).json({
         success: false,
+
         message: "Current password is incorrect",
       });
+
       return;
     }
 
@@ -449,11 +529,13 @@ export const changeOwnerPassword = async (
       {
         userId: user._id.toString(),
       },
+
       "Owner password changed",
     );
 
     res.status(200).json({
       success: true,
+
       message: "Password changed successfully",
     });
   } catch (error) {
@@ -461,6 +543,7 @@ export const changeOwnerPassword = async (
 
     res.status(500).json({
       success: false,
+
       message: "Internal server error",
     });
   }
@@ -468,14 +551,17 @@ export const changeOwnerPassword = async (
 
 export const getUserProfile = async (
   req: AuthRequest,
+
   res: Response,
 ): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
+
         message: "Authentication required",
       });
+
       return;
     }
 
@@ -486,21 +572,26 @@ export const getUserProfile = async (
     if (!user) {
       res.status(404).json({
         success: false,
+
         message: "User not found",
       });
+
       return;
     }
 
     if (user.role !== "user") {
       res.status(403).json({
         success: false,
+
         message: "Only normal users can access this profile",
       });
+
       return;
     }
 
     res.status(200).json({
       success: true,
+
       data: user,
     });
   } catch (error) {
@@ -508,6 +599,7 @@ export const getUserProfile = async (
 
     res.status(500).json({
       success: false,
+
       message: "Failed to fetch profile",
     });
   }
@@ -515,14 +607,17 @@ export const getUserProfile = async (
 
 export const updateUserProfile = async (
   req: AuthRequest,
+
   res: Response,
 ): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
+
         message: "Authentication required",
       });
+
       return;
     }
 
@@ -531,16 +626,20 @@ export const updateUserProfile = async (
     if (name !== undefined && typeof name !== "string") {
       res.status(400).json({
         success: false,
+
         message: "Name must be a string",
       });
+
       return;
     }
 
     if (name !== undefined && !name.trim()) {
       res.status(400).json({
         success: false,
+
         message: "Name cannot be empty",
       });
+
       return;
     }
 
@@ -549,24 +648,30 @@ export const updateUserProfile = async (
     if (!user) {
       res.status(404).json({
         success: false,
+
         message: "User not found",
       });
+
       return;
     }
 
     if (user.role !== "user") {
       res.status(403).json({
         success: false,
+
         message: "Only normal users can update this profile",
       });
+
       return;
     }
 
     if (!user.isActive) {
       res.status(403).json({
         success: false,
+
         message: "Your account is inactive",
       });
+
       return;
     }
 
@@ -582,7 +687,9 @@ export const updateUserProfile = async (
 
     res.status(200).json({
       success: true,
+
       message: "Profile updated successfully",
+
       data: updatedUser,
     });
   } catch (error) {
@@ -590,6 +697,7 @@ export const updateUserProfile = async (
 
     res.status(500).json({
       success: false,
+
       message: "Failed to update profile",
     });
   }
@@ -597,14 +705,17 @@ export const updateUserProfile = async (
 
 export const changeUserPassword = async (
   req: AuthRequest,
+
   res: Response,
 ): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
         success: false,
+
         message: "Authentication required",
       });
+
       return;
     }
 
@@ -613,70 +724,88 @@ export const changeUserPassword = async (
     if (typeof currentPassword !== "string" || !currentPassword) {
       res.status(400).json({
         success: false,
+
         message: "Current password is required",
       });
+
       return;
     }
 
     if (typeof newPassword !== "string" || !newPassword) {
       res.status(400).json({
         success: false,
+
         message: "New password is required",
       });
+
       return;
     }
 
     if (newPassword.length < 8) {
       res.status(400).json({
         success: false,
+
         message: "New password must be at least 8 characters long",
       });
+
       return;
     }
 
     if (currentPassword === newPassword) {
       res.status(400).json({
         success: false,
+
         message: "New password must be different from current password",
       });
+
       return;
     }
 
     const user = await User.findById(req.user.id).select("+password");
+
     if (!user) {
       res.status(404).json({
         success: false,
+
         message: "User not found",
       });
+
       return;
     }
 
     if (user.role !== "user") {
       res.status(403).json({
         success: false,
+
         message: "Only normal users can change this password",
       });
+
       return;
     }
 
     if (!user.isActive) {
       res.status(403).json({
         success: false,
+
         message: "Your account is inactive",
       });
+
       return;
     }
 
     const isPasswordCorrect = await bcrypt.compare(
       currentPassword,
+
       user.password,
     );
 
     if (!isPasswordCorrect) {
       res.status(401).json({
         success: false,
+
         message: "Current password is incorrect",
       });
+
       return;
     }
 
@@ -686,6 +815,7 @@ export const changeUserPassword = async (
 
     res.status(200).json({
       success: true,
+
       message: "Password changed successfully",
     });
   } catch (error: unknown) {
@@ -695,16 +825,20 @@ export const changeUserPassword = async (
           error instanceof Error
             ? {
                 name: error.name,
+
                 message: error.message,
+
                 stack: error.stack,
               }
             : error,
       },
+
       "Failed to change user password",
     );
 
     res.status(500).json({
       success: false,
+
       message: "Failed to change password",
     });
   }
