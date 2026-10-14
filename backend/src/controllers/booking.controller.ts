@@ -76,7 +76,10 @@ export const approveBooking = async (
       return;
     }
 
-    if (booking.owner.toString() !== req.user.id) {
+    const isBookingOwner = booking.owner.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isBookingOwner && !isAdmin) {
       res.status(403).json({
         success: false,
         message: "You are not allowed to manage this booking",
@@ -195,7 +198,10 @@ export const rejectBooking = async (
       return;
     }
 
-    if (booking.owner.toString() !== req.user.id) {
+    const isBookingOwner = booking.owner.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isBookingOwner && !isAdmin) {
       res.status(403).json({
         success: false,
         message: "You are not allowed to manage this booking",
