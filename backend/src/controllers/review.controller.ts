@@ -1,4 +1,3 @@
-
 import type { Response } from "express";
 import { Types } from "mongoose";
 
@@ -59,7 +58,8 @@ export const createReview = async (
     if (!isValidId(body.booking) || !input) {
       res.status(400).json({
         success: false,
-        message: "Provide a valid booking ID, rating from 1 to 5, and review of 5–1000 characters",
+        message:
+          "Provide a valid booking ID, rating from 1 to 5, and review of 5–1000 characters",
       });
       return;
     }
@@ -337,6 +337,63 @@ export const deleteMyReview = async (
     res.status(500).json({
       success: false,
       message: "Failed to delete review",
+    });
+  }
+};
+
+export const adminDeleteReview = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const { id } = req.params;
+
+    if (!isValidId(id)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid review ID",
+      });
+      return;
+    }
+
+    const admin = await User.findById(req.user.id).select("_id role isActive");
+
+    if (!admin || admin.role !== "admin" || !admin.isActive) {
+      res.status(403).json({
+        success: false,
+        message: "Active admin access is required",
+      });
+      return;
+    }
+
+    const review = await Review.findByIdAndDelete(id);
+
+    if (!review) {
+      res.status(404).json({
+        success: false,
+        message: "Review not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Review removed successfully",
+    });
+  } catch (error) {
+    logger.error({ error }, "Admin failed to delete review");
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to remove review",
     });
   }
 };

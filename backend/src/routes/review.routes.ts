@@ -6,6 +6,7 @@ import {
   getHostelReviews,
   updateMyReview,
   deleteMyReview,
+  adminDeleteReview,
 } from "../controllers/review.controller.js";
 
 import { protect } from "../middleware/auth.middleware.js";
@@ -20,5 +21,6 @@ router.get("/hostel/:hostelId", getHostelReviews);
 router.post("/", protect, authorize("user"), createReview);
 router.patch("/:id", protect, authorize("user"), updateMyReview);
 router.delete("/:id", protect, authorize("user"), deleteMyReview);
+router.delete("/admin/:id", protect, authorize("admin"), adminDeleteReview);
 
 export default router;
