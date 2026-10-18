@@ -10,6 +10,7 @@ import City from "../models/City.js";
 import Area from "../models/Area.js";
 import cloudinary from "../config/cloudinary.js";
 import logger from "../utils/logger.js";
+import Review from "../models/Review.js";
 
 type UploadedImage = {
   url: string;
@@ -349,10 +350,6 @@ export const createHostel = async (
   }
 };
 
-/**
- * GET /api/hostels
- * Public listing with filters and pagination.
- */
 export const getHostels = async (
   req: Request,
   res: Response,
@@ -496,14 +493,112 @@ export const getHostels = async (
     const skip = (pageNumber - 1) * limitNumber;
 
     const [hostels, total] = await Promise.all([
-      Hostel.find(filters)
-        .populate("city", "name state")
-        .populate("area", "name")
-        .populate("owner", "name")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNumber)
-        .lean(),
+      Hostel.aggregate([
+        { $match: filters },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limitNumber },
+
+        {
+          $lookup: {
+            from: Review.collection.name,
+            let: { hostelId: "$_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ["$hostel", "$$hostelId"],
+                  },
+                },
+              },
+              {
+                $group: {
+                  _id: null,
+                  averageRating: { $avg: "$rating" },
+                  reviewCount: { $sum: 1 },
+                },
+              },
+            ],
+            as: "reviewStats",
+          },
+        },
+
+        {
+          $addFields: {
+            averageRating: {
+              $round: [
+                {
+                  $ifNull: [
+                    {
+                      $arrayElemAt: ["$reviewStats.averageRating", 0],
+                    },
+                    0,
+                  ],
+                },
+                1,
+              ],
+            },
+            reviewCount: {
+              $ifNull: [
+                {
+                  $arrayElemAt: ["$reviewStats.reviewCount", 0],
+                },
+                0,
+              ],
+            },
+          },
+        },
+
+        { $project: { reviewStats: 0 } },
+
+        {
+          $lookup: {
+            from: "cities",
+            localField: "city",
+            foreignField: "_id",
+            pipeline: [{ $project: { name: 1, state: 1 } }],
+            as: "city",
+          },
+        },
+        {
+          $unwind: {
+            path: "$city",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        {
+          $lookup: {
+            from: "areas",
+            localField: "area",
+            foreignField: "_id",
+            pipeline: [{ $project: { name: 1 } }],
+            as: "area",
+          },
+        },
+        {
+          $unwind: {
+            path: "$area",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        {
+          $lookup: {
+            from: "users",
+            localField: "owner",
+            foreignField: "_id",
+            pipeline: [{ $project: { name: 1 } }],
+            as: "owner",
+          },
+        },
+        {
+          $unwind: {
+            path: "$owner",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+      ]),
 
       Hostel.countDocuments(filters),
     ]);
@@ -532,10 +627,6 @@ export const getHostels = async (
   }
 };
 
-/**
- * GET /api/hostels/:id
- * Public hostel details.
- */
 export const getHostelById = async (
   req: Request,
   res: Response,
@@ -551,14 +642,137 @@ export const getHostelById = async (
       return;
     }
 
-    const hostel = await Hostel.findOne({
-      _id: id,
-      isActive: true,
-    })
-      .populate("city", "name state country")
-      .populate("area", "name description latitude longitude")
-      .populate("owner", "name")
-      .lean();
+    const results = await Hostel.aggregate([
+      {
+        $match: {
+          _id: new Types.ObjectId(id),
+          isActive: true,
+        },
+      },
+      {
+        $lookup: {
+          from: Review.collection.name,
+          let: { hostelId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$hostel", "$$hostelId"],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                averageRating: { $avg: "$rating" },
+                reviewCount: { $sum: 1 },
+              },
+            },
+          ],
+          as: "reviewStats",
+        },
+      },
+      {
+        $addFields: {
+          averageRating: {
+            $round: [
+              {
+                $ifNull: [
+                  {
+                    $arrayElemAt: ["$reviewStats.averageRating", 0],
+                  },
+                  0,
+                ],
+              },
+              1,
+            ],
+          },
+          reviewCount: {
+            $ifNull: [
+              {
+                $arrayElemAt: ["$reviewStats.reviewCount", 0],
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          reviewStats: 0,
+        },
+      },
+      {
+        $lookup: {
+          from: "cities",
+          localField: "city",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                state: 1,
+                country: 1,
+              },
+            },
+          ],
+          as: "city",
+        },
+      },
+      {
+        $unwind: {
+          path: "$city",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "areas",
+          localField: "area",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                description: 1,
+                latitude: 1,
+                longitude: 1,
+              },
+            },
+          ],
+          as: "area",
+        },
+      },
+      {
+        $unwind: {
+          path: "$area",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "owner",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+              },
+            },
+          ],
+          as: "owner",
+        },
+      },
+      {
+        $unwind: {
+          path: "$owner",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ]);
+
+    const hostel = results[0];
 
     if (!hostel) {
       res.status(404).json({
@@ -582,10 +796,6 @@ export const getHostelById = async (
   }
 };
 
-/**
- * PATCH /api/hostels/:id
- * The hostel owner or an admin may update a listing.
- */
 export const updateHostel = async (
   req: AuthRequest,
   res: Response,
