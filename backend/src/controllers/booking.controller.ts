@@ -5,6 +5,7 @@ import User from "../models/User.js";
 import logger from "../utils/logger.js";
 import { Types } from "mongoose";
 import type { Request, Response } from "express";
+import Notification from "../models/Notification.js";
 
 export const getOwnerBookings = async (
   req: AuthRequest,
@@ -133,6 +134,19 @@ export const approveBooking = async (
 
     await booking.save();
 
+    try {
+      await Notification.create({
+        recipient: booking.user,
+        actor: req.user.id,
+        booking: booking._id,
+        type: "booking_approved",
+        title: "Booking approved",
+        message: "Your hostel booking has been approved.",
+      });
+    } catch (error) {
+      logger.error({ error }, "Failed to create booking approval notification");
+    }
+
     const updatedBooking = await Booking.findById(booking._id)
       .populate("user", "name email")
       .populate("hostel", "name address monthlyRent")
@@ -241,6 +255,22 @@ export const rejectBooking = async (
     }
 
     await booking.save();
+
+    try {
+      await Notification.create({
+        recipient: booking.user,
+        actor: req.user.id,
+        booking: booking._id,
+        type: "booking_rejected",
+        title: "Booking rejected",
+        message: "Your hostel booking has been rejected.",
+      });
+    } catch (error) {
+      logger.error(
+        { error },
+        "Failed to create booking rejection notification",
+      );
+    }
 
     const updatedBooking = await Booking.findById(booking._id)
       .populate("user", "name email")
@@ -739,6 +769,22 @@ export const cancelMyBooking = async (
     booking.cancellationReason = "Cancelled by user";
 
     await booking.save();
+
+    try {
+      await Notification.create({
+        recipient: booking.owner,
+        actor: req.user.id,
+        booking: booking._id,
+        type: "booking_cancelled",
+        title: "Booking cancelled",
+        message: "A user has cancelled their hostel booking.",
+      });
+    } catch (error) {
+      logger.error(
+        { error },
+        "Failed to create booking cancellation notification",
+      );
+    }
 
     const cancelledBooking = await Booking.findById(booking._id)
       .populate(
