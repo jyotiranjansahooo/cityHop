@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import NotificationBell from "@/app/components/notifications/NotificationBell";
 
 import { useAuth } from "../lib/auth/AuthProvider";
 
@@ -93,6 +94,7 @@ export default function HomeNavbar(): React.ReactElement {
               >
                 Logout
               </button>
+              <NotificationBell />
             </>
           ) : (
             <>
