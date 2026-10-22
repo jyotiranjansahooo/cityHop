@@ -71,8 +71,24 @@ async function notificationRequest<T>(
     },
   );
 
-  const data: unknown = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  const responseText = await response.text();
 
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      "Expected JSON but received HTML or another response type. " +
+        "Check the API URL and backend route. HTTP status: " +
+        response.status,
+    );
+  }
+
+  let data: unknown;
+
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    throw new Error("The backend returned invalid JSON.");
+  }
   if (!response.ok) {
     const message =
       typeof data === "object" &&

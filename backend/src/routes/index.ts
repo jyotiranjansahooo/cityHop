@@ -8,6 +8,8 @@ import adminRouter from "./admin.routes.js";
 import areaRouter from "./area.routes.js";
 import userRouter from "./user.routes.js";
 import reviewRoutes from "./review.routes.js";
+import notificationRoutes from "./notification.routes.js";
+
 
 const router = Router();
 
@@ -27,5 +29,6 @@ router.use("/admin", adminRouter);
 router.use("/areas", areaRouter);
 router.use("/users", userRouter);
 router.use("/reviews", reviewRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;
